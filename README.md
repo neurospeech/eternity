@@ -1,8 +1,16 @@
-[![NuGet](https://img.shields.io/nuget/v/NeuroSpeech.Eternity.svg?label=NuGet)](https://www.nuget.org/packages/NeuroSpeech.Eternity)
+[![.NET](https://github.com/neurospeech/eternitiy/actions/workflows/dotnet.yml/badge.svg)](https://github.com/neurospeech/eternitiy/actions/workflows/dotnet.yml)
 
 # Eternity Framework
 
 Long running workflows with ability to suspend and replay the workflow in future.
+
+## NuGet
+| Name                              | Package                                                                                                                                                        |
+|-----------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| NeuroSpeech.Eternity              | [![NuGet](https://img.shields.io/nuget/v/NeuroSpeech.Eternity.svg?label=NuGet)](https://www.nuget.org/packages/NeuroSpeech.Eternity)                           |
+| NeuroSpeech.Eternity.AzureStorage | [![NuGet](https://img.shields.io/nuget/v/NeuroSpeech.Eternity.AzureStorage.svg?label=NuGet)](https://www.nuget.org/packages/NeuroSpeech.Eternity.AzureStorage) |
+| NeuroSpeech.Eternity.Mocks        | [![NuGet](https://img.shields.io/nuget/v/NeuroSpeech.Eternity.Mocks.svg?label=NuGet)](https://www.nuget.org/packages/NeuroSpeech.Eternity.Mocks)               |
+
 
 ## Features
 
