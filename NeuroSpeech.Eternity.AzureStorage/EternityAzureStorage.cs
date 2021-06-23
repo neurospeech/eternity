@@ -70,7 +70,7 @@ namespace NeuroSpeech.Eternity
                         LeaseID = r.Value.LeaseId,
                         LockName = lockName
                     };
-                } catch (Exception ex)
+                } catch (Exception)
                 {
 
                 }
@@ -87,7 +87,7 @@ namespace NeuroSpeech.Eternity
                 var bc = b.GetBlobLeaseClient(el.LeaseID);
                 await bc.ReleaseAsync();
                 await b.DeleteIfExistsAsync();
-            }catch (Exception ex) { }
+            }catch (Exception) { }
         }
 
         public async Task<ActivityStep> GetEventAsync(string id, string eventName)
@@ -180,11 +180,13 @@ namespace NeuroSpeech.Eternity
             // generate new id...
             long id = await Activities.NewSequenceIDAsync(key.ID, "ID");
             key.SequenceID = id;
-            var actions = new List<TableTransactionAction>();
-            actions.Add(new TableTransactionAction(TableTransactionActionType.UpsertReplace, key.ToTableEntity(key.ID, key.KeyHash), ETag.All));
+            var actions = new List<TableTransactionAction>
+            {
+                new TableTransactionAction(TableTransactionActionType.UpsertReplace, key.ToTableEntity(key.ID, key.KeyHash), ETag.All)
+            };
 
             // last active event waiting must be added with eventName
-            if(key.ActivityType == ActivityType.Event)
+            if (key.ActivityType == ActivityType.Event)
             {
                 string[] eventNames = JsonSerializer.Deserialize<string[]>(key.Parameters);
                 foreach(var name in eventNames)

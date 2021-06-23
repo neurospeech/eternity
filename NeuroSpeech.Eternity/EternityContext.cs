@@ -79,10 +79,12 @@ namespace NeuroSpeech.Eternity
         internal async Task<WorkflowStatus<T?>> GetStatusAsync<T>(string id)
         {
             var wf = await storage.GetWorkflowAsync(id);
-            var status = new WorkflowStatus<T?>();
-            status.Status = wf.Status;
-            status.DateCreated = wf.DateCreated;
-            status.LastUpdate = wf.LastUpdated;
+            var status = new WorkflowStatus<T?>
+            {
+                Status = wf.Status,
+                DateCreated = wf.DateCreated,
+                LastUpdate = wf.LastUpdated
+            };
             switch (wf.Status)
             {
                 case ActivityStatus.Completed:
@@ -238,7 +240,7 @@ namespace NeuroSpeech.Eternity
             string value,
             bool throwIfNotFound = false)
         {
-            value = value ?? "";
+            value ??= "";
             var key = await storage.GetEventAsync(id, eventName);
             if (key == null)
             {
