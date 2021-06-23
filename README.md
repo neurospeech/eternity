@@ -1,3 +1,5 @@
+[![NuGet](https://img.shields.io/nuget/v/NeuroSpeech.Eternity.svg?label=NuGet)](https://www.nuget.org/packages/NeuroSpeech.Eternity)
+
 # Eternity Framework
 
 Long running workflows with ability to suspend and replay the workflow in future.
