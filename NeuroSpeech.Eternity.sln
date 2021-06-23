@@ -1,0 +1,48 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31129.286
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NeuroSpeech.Eternity", "NeuroSpeech.Eternity\NeuroSpeech.Eternity.csproj", "{C3B09F1A-0E85-4752-85EB-A8BB66886CD9}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NeuroSpeech.Eternity.AzureStorage", "NeuroSpeech.Eternity.AzureStorage\NeuroSpeech.Eternity.AzureStorage.csproj", "{BDE0931A-B930-4DD3-8CF5-6AF9FA0E4F57}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NeuroSpeech.Eternity.Mocks", "NeuroSpeech.Eternity.Mocks\NeuroSpeech.Eternity.Mocks.csproj", "{9B9DA7FB-1E07-446F-85F8-BD93294211AE}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NeuroSpeech.Eternity.Tests", "NeuroSpeech.Eternity.Tests\NeuroSpeech.Eternity.Tests.csproj", "{E5BBCBA9-42DD-43BE-B005-F9975F30F069}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{1F5C638F-13BA-48C1-9138-7FD4FE671138}"
+	ProjectSection(SolutionItems) = preProject
+		README.md = README.md
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C3B09F1A-0E85-4752-85EB-A8BB66886CD9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C3B09F1A-0E85-4752-85EB-A8BB66886CD9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C3B09F1A-0E85-4752-85EB-A8BB66886CD9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C3B09F1A-0E85-4752-85EB-A8BB66886CD9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BDE0931A-B930-4DD3-8CF5-6AF9FA0E4F57}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BDE0931A-B930-4DD3-8CF5-6AF9FA0E4F57}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BDE0931A-B930-4DD3-8CF5-6AF9FA0E4F57}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BDE0931A-B930-4DD3-8CF5-6AF9FA0E4F57}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9B9DA7FB-1E07-446F-85F8-BD93294211AE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9B9DA7FB-1E07-446F-85F8-BD93294211AE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9B9DA7FB-1E07-446F-85F8-BD93294211AE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9B9DA7FB-1E07-446F-85F8-BD93294211AE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E5BBCBA9-42DD-43BE-B005-F9975F30F069}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E5BBCBA9-42DD-43BE-B005-F9975F30F069}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E5BBCBA9-42DD-43BE-B005-F9975F30F069}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E5BBCBA9-42DD-43BE-B005-F9975F30F069}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {81A3E0EE-A900-4051-994D-E3A35819EEBE}
+	EndGlobalSection
+EndGlobal
