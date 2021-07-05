@@ -58,6 +58,13 @@ jobs:
           VERSION_STATIC: 1.4.0
           NUGET_SOURCE: ${{secrets.PROGET_NUGET}}
           NUGET_KEY: ${{secrets.PROGET_NUGET_TOKEN}}
+    - name: Publish ProGet Sqlite Storage
+      uses: rohith/publish-nuget@v2
+      with:
+          PROJECT_FILE_PATH: NeuroSpeech.Eternity.SqliteStorage/NeuroSpeech.Eternity.SqliteStorage.csproj
+          VERSION_STATIC: 1.4.0
+          NUGET_SOURCE: ${{secrets.PROGET_NUGET}}
+          NUGET_KEY: ${{secrets.PROGET_NUGET_TOKEN}}
     - name: Publish ProGet Mocks
       uses: rohith/publish-nuget@v2
       with:
