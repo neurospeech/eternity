@@ -14,11 +14,20 @@ namespace NeuroSpeech.Eternity
     {
 
         private Task? InitAsync;
+        private readonly TimeSpan QueuePollInterval;
         private readonly string connectionString;
+        private readonly IEternityClock clock;
 
-        public EternitySqliteStorage(string connectionString)
+        public EternitySqliteStorage(
+            string connectionString, 
+            IEternityClock clock,
+            TimeSpan queuePollInterval = default)
         {
+            this.QueuePollInterval = queuePollInterval.Ticks == 0
+                ? TimeSpan.FromSeconds(15)
+                : queuePollInterval;
             this.connectionString = connectionString;
+            this.clock = clock;
         }
 
         public async Task<SqliteConnection> Open()
@@ -32,56 +41,66 @@ namespace NeuroSpeech.Eternity
             return conn;
         }
 
-        public Task<IEternityLock> AcquireLockAsync(string id, long sequenceId)
+        public async Task<IEternityLock> AcquireLockAsync(string id, long sequenceId)
         {
-            throw new NotImplementedException();
+            while (true)
+            {
+                using var db = await Open(); 
+                try {
+                    var q = TemplateQuery.New(@$"INSERT INTO ActivityLocks(SequenceID) VALUES ({sequenceId});");
+                    await db.ExecuteNonQueryAsync(q);
+                    return new ActivityLock { SequenceID = sequenceId };
+                }
+                catch (SqliteException ex){
+                    System.Diagnostics.Debug.WriteLine(ex);
+                }
+                await Task.Delay(QueuePollInterval);
+            }
         }
 
         public async Task DeleteHistoryAsync(string id)
         {
-            using (var db = await Open())
-            {
-                var query = TemplateQuery.New(@$"
+            using var db = await Open();
+            var query = TemplateQuery.New(@$"
 DELETE FROM Activities WHERE ID={id};
 DELETE FROM ActivityEvents WHERE ID={id};
 ");
-                await db.ExecuteNonQueryAsync(query);
-            }
+            await db.ExecuteNonQueryAsync(query);
         }
 
-        public Task FreeLockAsync(IEternityLock executionLock)
+        public async Task FreeLockAsync(IEternityLock executionLock)
         {
-            throw new NotImplementedException();
+            using var db = await Open();
+            var l = (executionLock as ActivityLock)!;
+            var q = TemplateQuery.New(@$"DELETE FROM ActivityLocks WHERE SequenceID={l.SequenceID}");
+            await db.ExecuteNonQueryAsync(q);
         }
 
         public async Task<ActivityStep> GetEventAsync(string id, string eventName)
         {
-            using (var db = await Open()) {
-                var sids = await db.FromSqlAsync<ActivityStep>(TemplateQuery.New(@$"
+            using var db = await Open(); var sids = await db.FromSqlAsync<ActivityStep>(TemplateQuery.New(@$"
 SELECT SequenceID FROM ActivityEvents WHERE ID={id} AND EventName={eventName}
 "), true);
-                return await GetStatusAsync(sids.First());
-            }
+            return await GetStatusAsync(sids.First());
         }
 
         private static long lockID = 1;
 
         public async Task<WorkflowQueueItem[]> GetScheduledActivitiesAsync()
         {
-            using (var db = await Open())
+            using var db = await Open();
+            var now = clock.UtcNow;
+            var locked = now.AddMinutes(15);
+            var q = TemplateQuery.New($"SELECT * FROM QueueTokens WHERE ETA <= {now.UtcTicks} LIMIT 32");
+            var list = await db.FromSqlAsync<QueueToken>(q, true);
+            List<WorkflowQueueItem> results = new List<WorkflowQueueItem>();
+            foreach (var c in list)
             {
-                var now = DateTime.UtcNow;
-                var locked = now.AddMinutes(15);
-                var q = TemplateQuery.New($"SELECT * FROM QueueTokens WHERE ETA <= {now.Ticks} LIMIT 32");
-                var list = await db.FromSqlAsync<QueueToken>(q, true);
-                List<WorkflowQueueItem> results = new List<WorkflowQueueItem>();
-                foreach(var c in list)
-                {
-                    if (c.ETALocked > now.Ticks)
-                        continue;
-                    var lid = Interlocked.Increment(ref lockID);
-                    // update single...
-                    int i = await db.ExecuteNonQueryAsync(TemplateQuery.New(@$"
+                if (c.ETALocked > now.UtcTicks)
+                    continue;
+                var lid = Interlocked.Increment(ref lockID);
+                // update single...
+                int i = await db.ExecuteNonQueryAsync(TemplateQuery.New(@$"
 UPDATE 
     QueueTokens
 SET
@@ -92,49 +111,44 @@ WHERE
     AND CID={c.CID}
 "));
 
-                    if (i == 1)
+                if (i == 1)
+                {
+                    results.Add(new WorkflowQueueItem
                     {
-                        results.Add(new WorkflowQueueItem { 
-                            ID = c.ID,
-                            QueueToken = c.Token.ToString()
-                        });
-                    }
+                        ID = c.ID,
+                        QueueToken = c.Token.ToString()
+                    });
                 }
-                return results.ToArray();
             }
+            return results.ToArray();
         }
 
         public async Task<ActivityStep> GetStatusAsync(ActivityStep key)
         {
-            using (var db = await Open())
+            using var db = await Open();
+            if (key.SequenceID > 0)
             {
-                if (key.SequenceID > 0)
-                {
-                    return await db.FirstOrDefaultAsync<ActivityStep>(TemplateQuery.New(@$"
+                return await db.FirstOrDefaultAsync<ActivityStep>(TemplateQuery.New(@$"
 SELECT * FROM Activities WHERE SequenceID = {key.SequenceID}
 "), true);
-                }
-
-                var q = TemplateQuery.New(@$"SELECT * FROM Activities WHERE ID={key.ID} AND KeyHash={key.KeyHash} AND Key={key.Key}");
-                return await db.FirstOrDefaultAsync<ActivityStep>(q, true);
             }
+
+            var q = TemplateQuery.New(@$"SELECT * FROM Activities WHERE ID={key.ID} AND KeyHash={key.KeyHash} AND Key={key.Key}");
+            return await db.FirstOrDefaultAsync<ActivityStep>(q, true);
         }
 
         public async Task<WorkflowStep> GetWorkflowAsync(string id)
         {
-            using (var db = await Open())
-            {
-                var query = TemplateQuery.New($"SELECT * FROM Workflows WHERE ID = {id}");
-                var list = await db.FromSqlAsync<WorkflowStep>(query, true);
-                return list.FirstOrDefault();
-            }
+            using var db = await Open();
+            var query = TemplateQuery.New($"SELECT * FROM Workflows WHERE ID = {id}");
+            var list = await db.FromSqlAsync<WorkflowStep>(query, true);
+            return list.FirstOrDefault();
         }
 
         public async Task<ActivityStep> InsertActivityAsync(ActivityStep key)
         {
-            using (var db = await Open())
-            {
-                var query = TemplateQuery.New($@"
+            using var db = await Open();
+            var query = TemplateQuery.New($@"
 INSERT INTO Activities (
 ID,
 Method,
@@ -164,29 +178,27 @@ VALUES (
     {key.Result}
 );
 SELECT last_insert_rowid();");
-                var id = await db.ExecuteScalarAsync(query);
-                key.SequenceID = (long)Convert.ChangeType(id,typeof(long));
+            var id = await db.ExecuteScalarAsync(query);
+            key.SequenceID = (long)Convert.ChangeType(id, typeof(long));
 
-                // insert if it has any events..
-                if(key.ActivityType == ActivityType.Event)
+            // insert if it has any events..
+            if (key.ActivityType == ActivityType.Event)
+            {
+                var eventNames = JsonSerializer.Deserialize<string[]>(key.Parameters!)!;
+                foreach (var name in eventNames)
                 {
-                    var eventNames = JsonSerializer.Deserialize<string[]>(key.Parameters!)!;
-                    foreach(var name in eventNames)
-                    {
-                        var insert = TemplateQuery.New($"INSERT INTO ActivityEvents(ID,EventName,SequenceID) VALUES ({key.ID}, {name}, {key.SequenceID})");
-                        await db.ExecuteNonQueryAsync(insert);
-                    }
+                    var insert = TemplateQuery.New($"INSERT INTO ActivityEvents(ID,EventName,SequenceID) VALUES ({key.ID}, {name}, {key.SequenceID})");
+                    await db.ExecuteNonQueryAsync(insert);
                 }
-
-                return key;
             }
+
+            return key;
         }
 
         public async Task<WorkflowStep> InsertWorkflowAsync(WorkflowStep step)
         {
-            using (var db = await Open())
-            {
-                var query = TemplateQuery.New(@$"
+            using var db = await Open();
+            var query = TemplateQuery.New(@$"
     INSERT INTO Workflows (
         ID,
         WorkflowType,
@@ -212,51 +224,45 @@ SELECT last_insert_rowid();");
         {step.Error}
     )
 ");
-                await db.ExecuteNonQueryAsync(query);
-                return step;
-            }
+            await db.ExecuteNonQueryAsync(query);
+            return step;
         }
 
         public async Task<string> QueueWorkflowAsync(string id, DateTimeOffset after, string? existing = null)
         {
-            using (var db = await Open())
+            using var db = await Open();
+            if (existing != null)
             {
-                if(existing != null)
-                {
-                    await db.ExecuteNonQueryAsync(TemplateQuery.New($@"DELETE FROM QueueTokens WHERE Token={existing}"));
-                }
-                var q = TemplateQuery.New(@$"
+                await db.ExecuteNonQueryAsync(TemplateQuery.New($@"DELETE FROM QueueTokens WHERE Token={existing}"));
+            }
+            var q = TemplateQuery.New(@$"
 INSERT INTO QueueTokens(ID,ETA,ETALocked,CID)
 VALUES (
     {id},
     {after.UtcTicks},
     {0},
     {0}
-)
+);
 SELECT last_insert_rowid();");
-                var nextID = await db.ExecuteScalarAsync(q);
-                return nextID.ToString();
-            }
+            var nextID = await db.ExecuteScalarAsync(q);
+            return nextID.ToString();
         }
 
         public async Task RemoveQueueAsync(params string[] token)
         {
-            using(var db = await Open())
+            using var db = await Open();
+            long[] ids = new long[token.Length];
+            for (int i = 0; i < token.Length; i++)
             {
-                long[] ids = new long[token.Length];
-                for (int i = 0; i < token.Length; i++)
-                {
-                    ids[i] = long.Parse(token[i]);
-                }
-                await db.ExecuteNonQueryAsync(TemplateQuery.New(@$"DELETE FROM QueueTokens WHERE Token IN ({ids})"));
+                ids[i] = long.Parse(token[i]);
             }
+            await db.ExecuteNonQueryAsync(TemplateQuery.New(@$"DELETE FROM QueueTokens WHERE Token IN ({ids})"));
         }
 
         public async Task UpdateAsync(ActivityStep key)
         {
-            using (var db = await Open())
-            {
-                var q = TemplateQuery.New(@$"
+            using var db = await Open();
+            var q = TemplateQuery.New(@$"
 UPDATE 
     Activities 
 SET
@@ -271,15 +277,13 @@ WHERE
     SequenceID={key.SequenceID}
 ");
 
-                await db.ExecuteNonQueryAsync(q);
-            }
+            await db.ExecuteNonQueryAsync(q);
         }
 
         public async Task UpdateAsync(WorkflowStep key)
         {
-            using (var db = await Open())
-            {
-                var q = TemplateQuery.New(@$"
+            using var db = await Open();
+            var q = TemplateQuery.New(@$"
 UPDATE 
     Workflows 
 SET
@@ -287,13 +291,12 @@ SET
     ETA={key.ETA.UtcTicks},
     Status={key.Status.ToString()},
     Error={key.Error},
-    Result={key.Result},
+    Result={key.Result}
 WHERE
     ID={key.ID}
 ");
 
-                await db.ExecuteNonQueryAsync(q);
-            }
+            await db.ExecuteNonQueryAsync(q);
         }
     }
 }

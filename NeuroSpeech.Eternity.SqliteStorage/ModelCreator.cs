@@ -21,7 +21,7 @@ namespace NeuroSpeech.Eternity
         ETA INTEGER NOT NULL,
         DateCreated INTEGER NOT NULL,
         LastUpdated INTEGER NOT NULL,
-        ActivityStatus TEXT,
+        Status TEXT,
         Result TEXT,
         Error Text
     );
@@ -36,7 +36,7 @@ namespace NeuroSpeech.Eternity
         ETA INTEGER NOT NULL,
         DateCreated INTEGER NOT NULL,
         LastUpdated INTEGER NOT NULL,
-        ActivityStatus TEXT,
+        Status TEXT,
         Result TEXT,
         Error Text,
         Key TEXT NOT NULL,
@@ -45,7 +45,7 @@ namespace NeuroSpeech.Eternity
     );
     
     CREATE INDEX IF NOT EXISTS IX_Activities_KeyHash
-    ON Workflows (ID, KeyHash);
+    ON Activities (ID, KeyHash);
 
     CREATE TABLE IF NOT EXISTS ActivityEvents (
         ROWID INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -61,11 +61,15 @@ namespace NeuroSpeech.Eternity
         Token INTEGER PRIMARY KEY AUTOINCREMENT,
         ID TEXT,
         ETA INTEGER,
-        ETALock INTEGER,
+        ETALocked INTEGER,
         CID INTEGER);
 
     CREATE INDEX IF NOT EXISTS IX_QueueTokens_ETA
     ON QueueTokens (ETA);
+
+    CREATE TABLE IF NOT EXISTS ActivityLocks (
+        SequenceID INTEGER PRIMARY KEY
+    );
 
 ");
             await conn.ExecuteNonQueryAsync(createScript);
@@ -87,5 +91,10 @@ namespace NeuroSpeech.Eternity
         /// Concurrency Token
         /// </summary>
         public long CID { get; set; }
+    }
+
+    public class ActivityLock: IEternityLock
+    {
+        public long SequenceID { get; set; }
     }
 }

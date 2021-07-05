@@ -312,7 +312,7 @@ namespace NeuroSpeech.Eternity
         }
 
         public static async Task<T> FirstOrDefaultAsync<T>(this DbConnection conn, TemplateQuery query, bool ignoreUnmatchedProperties = false)
-            where T: class
+            where T : class
         {
             var list = await FromSqlAsync<T>(conn, query, ignoreUnmatchedProperties);
             return list.FirstOrDefault();
@@ -368,13 +368,7 @@ namespace NeuroSpeech.Eternity
                         {
                             continue;
                         }
-                        var type = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
-                        if (value.GetType() != type)
-                        {
-                            value = Convert.ChangeType(value, type);
-                        }
-
-                        property.SetValue(item, value);
+                        property.ConvertAndSetValue(item, value);
 
                     }
                     list.Add(item);
@@ -433,13 +427,7 @@ namespace NeuroSpeech.Eternity
                         {
                             continue;
                         }
-                        var type = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
-                        if (value.GetType() != type)
-                        {
-                            value = Convert.ChangeType(value, type);
-                        }
-
-                        property.SetValue(item, value);
+                        property.ConvertAndSetValue(item, value);
 
                     }
                     list.Add(item);
@@ -448,5 +436,54 @@ namespace NeuroSpeech.Eternity
             }
         }
 
+
+
+        public static void ConvertAndSetValue(this PropertyInfo property, object target, object? value)
+        {
+            if (value == null || !property.CanWrite)
+                return;
+            var valueType = value.GetType();
+            var tc = Type.GetTypeCode(valueType);
+            var propertyType = property.PropertyType;
+            propertyType = Nullable.GetUnderlyingType(propertyType) ?? propertyType;
+            if (propertyType == valueType)
+            {
+                property.SetValue(target, value);
+                return;
+            }
+            if (propertyType.IsEnum)
+            {
+                if(valueType == typeof(string))
+                {
+                    property.SetValue(target, Enum.Parse(propertyType, (string)value));
+                    return;
+                }
+            }
+            if (propertyType == typeof(DateTimeOffset))
+            {
+                switch (tc)
+                {
+                    case TypeCode.Int64:
+                        property.SetValue(target, new DateTimeOffset((long)value, TimeSpan.Zero));
+                        return;
+                    case TypeCode.Int32:
+                        property.SetValue(target, new DateTimeOffset((long)(int)value, TimeSpan.Zero));
+                        return;
+                }
+            }
+            if (propertyType == typeof(DateTime))
+            {
+                switch (tc)
+                {
+                    case TypeCode.Int64:
+                        property.SetValue(target, new DateTime((long)value, DateTimeKind.Utc));
+                        return;
+                    case TypeCode.Int32:
+                        property.SetValue(target, new DateTime((long)(int)value, DateTimeKind.Utc));
+                        return;
+                }
+            }
+            property.SetValue(target, Convert.ChangeType(value, propertyType));
+        }
     }
 }
