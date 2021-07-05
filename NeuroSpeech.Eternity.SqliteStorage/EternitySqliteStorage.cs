@@ -233,7 +233,8 @@ SELECT last_insert_rowid();");
             using var db = await Open();
             if (existing != null)
             {
-                await db.ExecuteNonQueryAsync(TemplateQuery.New($@"DELETE FROM QueueTokens WHERE Token={existing}"));
+                var eid = long.Parse(existing);
+                await db.ExecuteNonQueryAsync(TemplateQuery.New($@"DELETE FROM QueueTokens WHERE Token={eid}"));
             }
             var q = TemplateQuery.New(@$"
 INSERT INTO QueueTokens(ID,ETA,ETALocked,CID)

@@ -149,7 +149,10 @@ namespace NeuroSpeech.Eternity
         public async Task ProcessMessagesOnceAsync()
         {
             var items = await storage.GetScheduledActivitiesAsync();
-            await Task.WhenAll(items.Select(RunWorkflowAsync));
+            foreach(var item in items)
+            {
+                await this.RunWorkflowAsync(item);
+            }
 
         }
 

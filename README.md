@@ -5,11 +5,12 @@
 Long running workflows with ability to suspend and replay the workflow in future.
 
 ## NuGet
-| Name                              | Package                                                                                                                                                        |
-|-----------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| NeuroSpeech.Eternity              | [![NuGet](https://img.shields.io/nuget/v/NeuroSpeech.Eternity.svg?label=NuGet)](https://www.nuget.org/packages/NeuroSpeech.Eternity)                           |
-| NeuroSpeech.Eternity.AzureStorage | [![NuGet](https://img.shields.io/nuget/v/NeuroSpeech.Eternity.AzureStorage.svg?label=NuGet)](https://www.nuget.org/packages/NeuroSpeech.Eternity.AzureStorage) |
-| NeuroSpeech.Eternity.Mocks        | [![NuGet](https://img.shields.io/nuget/v/NeuroSpeech.Eternity.Mocks.svg?label=NuGet)](https://www.nuget.org/packages/NeuroSpeech.Eternity.Mocks)               |
+| Name                               | Package                                                                                                                                                        |
+|------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| NeuroSpeech.Eternity               | [![NuGet](https://img.shields.io/nuget/v/NeuroSpeech.Eternity.svg?label=NuGet)](https://www.nuget.org/packages/NeuroSpeech.Eternity)                           |
+| NeuroSpeech.Eternity.AzureStorage  | [![NuGet](https://img.shields.io/nuget/v/NeuroSpeech.Eternity.AzureStorage.svg?label=NuGet)](https://www.nuget.org/packages/NeuroSpeech.Eternity.AzureStorage) |
+| NeuroSpeech.Eternity.SqliteStorage | [![NuGet](https://img.shields.io/nuget/v/NeuroSpeech.Eternity.SqliteStorage.svg?label=NuGet)](https://www.nuget.org/packages/NeuroSpeech.Eternity.SqliteStorage) |
+| NeuroSpeech.Eternity.Mocks         | [![NuGet](https://img.shields.io/nuget/v/NeuroSpeech.Eternity.Mocks.svg?label=NuGet)](https://www.nuget.org/packages/NeuroSpeech.Eternity.Mocks)               |
 
 
 ## Features
@@ -75,6 +76,38 @@ public class SignupWorkflow : Workflow<SignupWorkflow, string, string>
     }
 }
 ```
+### Ready for Mobile 
+
+For mobile, on iOS, there is no way to generate the code, so you can use `Schedule` method by importing `.Mobile` namespace as shown below.
+
+```c#
+        var maxWait = TimeSpan.FromMinutes(15);
+        var code = (this.CurrentUtc.Ticks & 0xF).ToString();
+        await SendEmailAsync(input, code);
+        for (int i = 0; i < 3; i++)
+        {
+            var (name, result) = await WaitForExternalEventsAsync(maxWait, Resend, Verify);
+            switch(name)
+            {
+                case Verify:
+                    if(result == code)
+                    {
+                        return "Verified";
+                    }
+                    break;
+                case Resend:
+                    // note this will use method delegate and will ensure that we are passing
+                    // same type of parameters, the only problem is you will have to supply all
+                    // default parameters as well
+                    await this.ScheduleAsync( SendEmailAsync, input, code, i, null);
+                    break;
+            }
+        }
+        return "NotVerified";
+```
+#### Sqlite Storage for Mobile
+You will need to create `EternitySqliteStorage` by passing connection string with name of database file.
+And you  will need to run the workflow in UI Thread by calling `context.ProcessMessagesAsync` once.
 
 ### Dependency Injection
 
