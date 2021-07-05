@@ -8,7 +8,6 @@ using System.Threading.Tasks;
 
 namespace NeuroSpeech.Eternity
 {
-
     /// <summary>
     /// Base class for Eternity Workflow
     /// </summary>
@@ -28,7 +27,7 @@ namespace NeuroSpeech.Eternity
         public static Task<string> CreateAsync(EternityContext context, TInput input)
         {
             // this will force verification..
-            ClrHelper.Instance.GetDerived(typeof(TWorkflow));
+            context.GetDerived(typeof(TWorkflow));
             return context.CreateAsync<TInput, TOutput>(typeof(TWorkflow), input);
         }
 
@@ -43,7 +42,7 @@ namespace NeuroSpeech.Eternity
         public static Task<string> CreateAsync(EternityContext context, string id, TInput input)
         {
             // this will force verification..
-            ClrHelper.Instance.GetDerived(typeof(TWorkflow));
+            context.GetDerived(typeof(TWorkflow));
             return context.CreateAsync<TInput, TOutput>(typeof(TWorkflow), input, id);
         }
 
@@ -58,7 +57,7 @@ namespace NeuroSpeech.Eternity
         public static Task<string> CreateAtAsync(EternityContext context, TInput input, DateTimeOffset at)
         {
             // this will force verification..
-            ClrHelper.Instance.GetDerived(typeof(TWorkflow));
+            context.GetDerived(typeof(TWorkflow));
             return context.CreateAtAsync<TInput, TOutput>(typeof(TWorkflow), input, at);
         }
 
@@ -74,7 +73,7 @@ namespace NeuroSpeech.Eternity
         public static Task<string> CreateAtAsync(EternityContext context, string id, TInput input, DateTimeOffset at)
         {
             // this will force verification..
-            ClrHelper.Instance.GetDerived(typeof(TWorkflow));
+            context.GetDerived(typeof(TWorkflow));
             return context.CreateAtAsync<TInput, TOutput>(typeof(TWorkflow), input, at, id);
         }
 
@@ -110,6 +109,11 @@ namespace NeuroSpeech.Eternity
         /// </summary>
         public bool IsActivityRunning { get; internal set; }
 
+        private bool generated;
+
+        bool IWorkflow.IsGenerated => generated;
+        
+
         /// <summary>
         /// Workflow ID associated with current execution
         /// </summary>
@@ -142,11 +146,12 @@ namespace NeuroSpeech.Eternity
 
         public abstract Task<TOutput> RunAsync(TInput input);
 
-        void IWorkflow.Init(string id, EternityContext context, DateTimeOffset start)
+        void IWorkflow.Init(string id, EternityContext context, DateTimeOffset start, bool generated)
         {
             this.ID = id;
             this.Context = context;
             this.CurrentUtc = start;
+            this.generated = generated;
         }
 
         /// <summary>
@@ -187,7 +192,7 @@ namespace NeuroSpeech.Eternity
         }
 
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public Task<T> ScheduleResultAsync<T>(string method, params object[] items)
+        public Task<T> InternalScheduleResultAsync<T>(string method, params object?[] items)
         {
             var fx = typeof(TWorkflow).GetMethod(method);
             var unique = fx.GetCustomAttribute<ActivityAttribute>();
@@ -195,7 +200,7 @@ namespace NeuroSpeech.Eternity
         }
 
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public async Task ScheduleAsync(string method, params object[] items)
+        public async Task InternalScheduleAsync(string method, params object?[] items)
         {
             var fx = typeof(TWorkflow).GetMethod(method);
             var unique = fx.GetCustomAttribute<ActivityAttribute>();
@@ -203,7 +208,7 @@ namespace NeuroSpeech.Eternity
         }
 
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public Task<T> ScheduleAtResultAsync<T>(DateTimeOffset at, string method, params object[] items)
+        public Task<T> InternalScheduleAtResultAsync<T>(DateTimeOffset at, string method, params object?[] items)
         {
             if (at <= CurrentUtc)
             {
@@ -215,7 +220,7 @@ namespace NeuroSpeech.Eternity
         }
 
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public async Task ScheduleAtAsync(DateTimeOffset at, string method, params object[] items)
+        public async Task InternalScheduleAtAsync(DateTimeOffset at, string method, params object?[] items)
         {
             if (at <= CurrentUtc)
             {
@@ -227,7 +232,7 @@ namespace NeuroSpeech.Eternity
         }
 
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public Task<T> ScheduleAfterResultAsync<T>(TimeSpan at, string method, params object[] items)
+        public Task<T> InternalScheduleAfterResultAsync<T>(TimeSpan at, string method, params object?[] items)
         {
             if (at.TotalMilliseconds <= 0)
             {
@@ -239,7 +244,7 @@ namespace NeuroSpeech.Eternity
         }
 
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public async Task ScheduleAfterAsync(TimeSpan at, string method, params object[] items)
+        public async Task InternalScheduleAfterAsync(TimeSpan at, string method, params object?[] items)
         {
             if (at.TotalMilliseconds <= 0)
             {

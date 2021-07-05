@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -25,7 +26,13 @@ namespace NeuroSpeech.Eternity
         private readonly IEternityClock clock;
         private readonly System.Text.Json.JsonSerializerOptions options;
         private CancellationTokenSource? waiter;
+
+        /// <summary>
+        /// Please turn on EmitAvailable on iOS
+        /// </summary>
+        public bool EmitAvailable { get; set; } = true;
         
+
 
         public EternityContext(
             IEternityStorage storage, 
@@ -42,7 +49,32 @@ namespace NeuroSpeech.Eternity
                 IgnoreReadOnlyFields = true,
                 DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
             };
+        }
 
+        private static ConcurrentDictionary<Type, Type> generatedTypes = new ConcurrentDictionary<Type, Type>();
+
+        internal Type GetDerived(Type type)
+        {
+            return generatedTypes.GetOrAdd(type, t =>
+            {
+                lock (generatedTypes)
+                {
+                    return generatedTypes.GetOrAdd(t, k =>
+                    {
+                        var generatedType = type.Assembly.GetExportedTypes()
+                            .FirstOrDefault(x => type.IsAssignableFrom(x) && x.GetCustomAttribute<GeneratedWorkflowAttribute>() != null);
+
+                        if (generatedType != null)
+                            return generatedType;
+
+                        // check if we are in iOS
+                        if (this.EmitAvailable)
+                            return ClrHelper.Instance.Create(type);
+                        // if generated code is available... in the same assembly..
+                        return type;
+                    });
+                }
+            });
         }
 
         private void Trigger()
@@ -129,8 +161,8 @@ namespace NeuroSpeech.Eternity
                 await storage.RemoveQueueAsync(queueItem.QueueToken);
                 return;
             }
-
-            var workflowType = ClrHelper.Instance.GetDerived(Type.GetType(step.WorkflowType));
+            var originalType = Type.GetType(step.WorkflowType);
+            var workflowType = this.GetDerived(originalType);
             // we need to begin...
             var instance = GetWorkflowInstance(workflowType, step.ID!, step.LastUpdated);
             instance.QueueItemList.Add(queueItem.QueueToken);
@@ -343,7 +375,7 @@ namespace NeuroSpeech.Eternity
             string ID,
             DateTimeOffset after,
             MethodInfo method,
-            params object[] input)
+            params object?[] input)
         {
 
             if (workflow.IsActivityRunning)
@@ -416,7 +448,10 @@ namespace NeuroSpeech.Eternity
 
                     var parameters = BuildParameters(method, key.Parameters, scope.ServiceProvider);
 
-                    var result = await method.RunAsync(workflow, parameters, options);
+                    // if type is generated...
+                    var result = (workflow.IsGenerated || !EmitAvailable)
+                        ? await method.InvokeAsync(workflow, parameters, options)
+                        : await method.RunAsync(workflow, parameters, options);
                     key.Result = result;
                     key.Status = ActivityStatus.Completed;
                     key.LastUpdated = clock.UtcNow;
@@ -467,7 +502,7 @@ namespace NeuroSpeech.Eternity
         private IWorkflow GetWorkflowInstance(Type type, string id, DateTimeOffset eta)
         {
             var w = (Activator.CreateInstance(type) as IWorkflow)!;
-            w.Init(id, this, eta);
+            w.Init(id, this, eta, type.GetCustomAttribute<GeneratedWorkflowAttribute>() != null );
             return w;
         }
 

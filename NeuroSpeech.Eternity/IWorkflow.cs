@@ -6,7 +6,7 @@ namespace NeuroSpeech.Eternity
 {
     internal interface IWorkflow
     {
-        void Init(string id, EternityContext context, DateTimeOffset start);
+        void Init(string id, EternityContext context, DateTimeOffset start, bool generated);
         void SetCurrentTime(DateTimeOffset time);
 
         Type InputType { get; }
@@ -18,6 +18,8 @@ namespace NeuroSpeech.Eternity
         IList<string> QueueItemList { get; }
 
         bool  IsActivityRunning { get; set; }
+
+        bool IsGenerated { get; }
 
         bool DeleteHistory { get; }
 

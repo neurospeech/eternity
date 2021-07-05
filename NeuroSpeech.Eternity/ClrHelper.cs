@@ -23,19 +23,7 @@ namespace NeuroSpeech.Eternity
             this.moduleBuilder = a.DefineDynamicModule("EternityWorkflows");
         }
 
-        static ConcurrentDictionary<Type, Type> derived = new ConcurrentDictionary<Type, Type>();
-
-        internal Type GetDerived(Type type)
-        {
-            return derived.GetOrAdd(type, (x) => {
-                lock (derived)
-                {
-                    return derived.GetOrAdd(x, Create);
-                }
-            });
-        }
-
-        private Type Create(Type type)
+        internal Type Create(Type type)
         {
             var dt = moduleBuilder.DefineType(type.Name + "Derived" + Interlocked.Increment(ref id),
                TypeAttributes.Public | TypeAttributes.Class, type);
@@ -83,7 +71,7 @@ namespace NeuroSpeech.Eternity
 
             MethodInfo targetMethod;
 
-            var schedule = "Schedule";
+            var schedule = "InternalSchedule";
 
             ParameterInfo? sat = null;
             foreach(var p in method.GetParameters())
