@@ -37,7 +37,7 @@ jobs:
           PROJECT_FILE_PATH: NeuroSpeech.Eternity.AzureStorage/NeuroSpeech.Eternity.AzureStorage.csproj
           VERSION_STATIC: 1.4.0
           NUGET_KEY: ${{secrets.PUBLIC_NUGET_TOKEN}}
-    - name: Publish Azure Storage
+    - name: Publish Sqlite Storage
       uses: rohith/publish-nuget@v2
       with:
           PROJECT_FILE_PATH: NeuroSpeech.Eternity.SqliteStorage/NeuroSpeech.Eternity.SqliteStorage.csproj
