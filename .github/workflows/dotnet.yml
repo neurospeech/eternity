@@ -26,7 +26,7 @@ jobs:
     - name: Test
       run: dotnet test --no-build --verbosity normal
     - name: Publish Eternity
-      run: dotnet nuget push **/*.nupkg -k ${NUGET_TOKEN} 
+      run: dotnet nuget push **/*.nupkg -k ${NUGET_TOKEN} -s https://api.nuget.org
       env:
          NUGET_TOKEN: ${{secrets.PUBLIC_NUGET_TOKEN}}
 
