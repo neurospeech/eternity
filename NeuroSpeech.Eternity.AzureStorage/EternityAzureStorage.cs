@@ -210,7 +210,7 @@ namespace NeuroSpeech.Eternity
                 entity.Remove(nameof(key.Key));
             } else
             {
-                entity.Add("Key", key);
+                entity.Add("Key", key.Key);
             }
             var actions = new List<TableTransactionAction>
             {
