@@ -38,7 +38,7 @@ namespace NeuroSpeech.Eternity
                     { nameof(key.DateCreated), key.DateCreated },
                     { nameof(key.LastUpdated), key.LastUpdated },
                     { nameof(key.ETA), key.ETA },
-                    { nameof(key.Status) , key.Status }
+                    { nameof(key.Status) , Enum.GetName(typeof(ActivityStatus), key.Status) }
                 };
             if(key.QueueToken != null)
             {
