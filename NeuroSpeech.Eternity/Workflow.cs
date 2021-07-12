@@ -194,7 +194,7 @@ namespace NeuroSpeech.Eternity
         [EditorBrowsable(EditorBrowsableState.Never)]
         public Task<T> InternalScheduleResultAsync<T>(string method, params object?[] items)
         {
-            var fx = typeof(TWorkflow).GetMethod(method);
+            var fx = typeof(TWorkflow).GetVirtualMethod(method);
             var unique = fx.GetCustomAttribute<ActivityAttribute>();
             return Context.ScheduleAsync<T>(this, unique.UniqueParameters, ID, CurrentUtc, fx, items);
         }
@@ -202,7 +202,7 @@ namespace NeuroSpeech.Eternity
         [EditorBrowsable(EditorBrowsableState.Never)]
         public async Task InternalScheduleAsync(string method, params object?[] items)
         {
-            var fx = typeof(TWorkflow).GetMethod(method);
+            var fx = typeof(TWorkflow).GetVirtualMethod(method);
             var unique = fx.GetCustomAttribute<ActivityAttribute>();
             await Context.ScheduleAsync<object>(this, unique.UniqueParameters, ID, CurrentUtc, fx, items);
         }
@@ -214,7 +214,7 @@ namespace NeuroSpeech.Eternity
             {
                 throw new ArgumentException($"{nameof(at)} cannot be in the past");
             }
-            var fx = typeof(TWorkflow).GetMethod(method);
+            var fx = typeof(TWorkflow).GetVirtualMethod(method);
             var unique = fx.GetCustomAttribute<ActivityAttribute>();
             return Context.ScheduleAsync<T>(this, unique.UniqueParameters, ID, at, fx, items);
         }
@@ -226,7 +226,7 @@ namespace NeuroSpeech.Eternity
             {
                 throw new ArgumentException($"{nameof(at)} cannot be in the past");
             }
-            var fx = typeof(TWorkflow).GetMethod(method);
+            var fx = typeof(TWorkflow).GetVirtualMethod(method);
             var unique = fx.GetCustomAttribute<ActivityAttribute>();
             await Context.ScheduleAsync<object>(this, unique.UniqueParameters, ID, at, fx, items);
         }
@@ -238,7 +238,7 @@ namespace NeuroSpeech.Eternity
             {
                 throw new ArgumentException($"{nameof(at)} cannot be in the past");
             }
-            var fx = typeof(TWorkflow).GetMethod(method);
+            var fx = typeof(TWorkflow).GetVirtualMethod(method);
             var unique = fx.GetCustomAttribute<ActivityAttribute>();
             return Context.ScheduleAsync<T>(this, unique.UniqueParameters, ID, CurrentUtc.Add(at), fx, items);
         }
@@ -250,7 +250,7 @@ namespace NeuroSpeech.Eternity
             {
                 throw new ArgumentException($"{nameof(at)} cannot be in the past");
             }
-            var fx = typeof(TWorkflow).GetMethod(method);
+            var fx = typeof(TWorkflow).GetVirtualMethod(method);
             var unique = fx.GetCustomAttribute<ActivityAttribute>();
             await Context.ScheduleAsync<object>(this, unique.UniqueParameters, ID, CurrentUtc.Add(at), fx, items);
         }
