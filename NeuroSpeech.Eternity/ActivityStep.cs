@@ -80,9 +80,25 @@ namespace NeuroSpeech.Eternity
 
         public string? Key { get; set; }
 
-        public string KeyHash => Convert.ToBase64String(sha.ComputeHash( System.Text.Encoding.UTF8.GetBytes(Key)));
+        public string KeyHash => Convert.ToBase64String(sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(Key)));
 
-        public string? Parameters { get; set; }
+        public string[]? GetEvents() => JsonSerializer.Deserialize<string[]>(Parameters!);
+
+        private string? parameters;
+        internal string? Parameters { get {
+                if (parameters == null)
+                {
+                    if (Key == null)
+                        return null;
+                    int index = Key.IndexOf(':');
+                    if (index == -1)
+                        return parameters;
+                    parameters = Key.Substring(index + 1);
+                }
+                return parameters;
+            }
+            set => parameters = value; 
+        }
 
         public ActivityStatus Status { get; set; }
 
@@ -111,7 +127,7 @@ namespace NeuroSpeech.Eternity
                 DateCreated = now,
                 LastUpdated = now
             };
-            step.Key = $"{step.ID}-{step.ActivityType}-{step.DateCreated.Ticks}-{step.Parameters}";
+            step.Key = $"{step.ID}-{step.ActivityType}-{step.DateCreated.Ticks}:{step.Parameters}";
             return step;
         }
 
@@ -131,16 +147,16 @@ namespace NeuroSpeech.Eternity
                 DateCreated = now,
                 LastUpdated = now
             };
-            step.Key = $"{step.ID}-{step.ActivityType}-{step.DateCreated.Ticks}-{step.Parameters}";
+            step.Key = $"{step.ID}-{step.ActivityType}-{step.DateCreated.Ticks}:{step.Parameters}";
             return step;
         }
 
 
         public static ActivityStep Activity(
             bool uniqueParameters,
-            string id, 
-            MethodInfo method, 
-            object[] parameters, 
+            string id,
+            MethodInfo method,
+            object[] parameters,
             DateTimeOffset eta,
             DateTimeOffset now,
             JsonSerializerOptions? options = default)
@@ -155,9 +171,9 @@ namespace NeuroSpeech.Eternity
                 DateCreated = now,
                 LastUpdated = now
             };
-            step.Key = uniqueParameters 
+            step.Key = uniqueParameters
                 ? $"{step.ID}-{step.ActivityType}-{step.Method}-{step.Parameters}"
-                : $"{step.ID}-{step.ActivityType}-{step.Method}-{step.DateCreated.Ticks}-{step.Parameters}"; 
+                : $"{step.ID}-{step.ActivityType}-{step.Method}-{step.DateCreated.Ticks}:{step.Parameters}";
             // step.ParametersHash = Convert.ToBase64String(sha.ComputeHash( System.Text.Encoding.UTF8.GetBytes(step.Parameters)));
             return step;
         }

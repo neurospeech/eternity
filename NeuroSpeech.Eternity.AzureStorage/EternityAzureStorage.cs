@@ -165,7 +165,7 @@ namespace NeuroSpeech.Eternity
 
             // Find SequenceID first..
 
-            var filter = Azure.Data.Tables.TableClient.CreateQueryFilter($"PartitionKey eq {key.ID} and RowKey eq {key.KeyHash} and Key eq {key.Key}");
+            var filter = Azure.Data.Tables.TableClient.CreateQueryFilter($"PartitionKey eq {key.ID} and RowKey ge {key.KeyHash} and Key eq {key.Key}");
             await foreach (var e in Activities.QueryAsync<TableEntity>(filter)) {
                 return e.ToObject<ActivityStep>();
             }
@@ -188,16 +188,12 @@ namespace NeuroSpeech.Eternity
             key.SequenceID = id;
             var actions = new List<TableTransactionAction>
             {
-                new TableTransactionAction(TableTransactionActionType.UpsertReplace, key.ToTableEntity(key.ID, key.KeyHash), ETag.All)
+                new TableTransactionAction(TableTransactionActionType.UpsertReplace, key.ToTableEntity(key.ID, key.KeyHash + "-" + id), ETag.All)
             };
-            if(key.Parameters?.Length > 32*1024)
-            {
-                throw new ArgumentOutOfRangeException($"Parameter is too large, {key.Parameters}");
-            }
             // last active event waiting must be added with eventName
             if (key.ActivityType == ActivityType.Event)
             {
-                string[] eventNames = JsonSerializer.Deserialize<string[]>(key.Parameters);
+                string[] eventNames = key.GetEvents();
                 foreach(var name in eventNames)
                 {
                     actions.Add(new TableTransactionAction(TableTransactionActionType.UpsertReplace, new TableEntity(key.ID, name)
