@@ -110,6 +110,8 @@ namespace NeuroSpeech.Eternity
 
         internal T? AsResult<T>(JsonSerializerOptions options)
         {
+            if (Result == null)
+                return default;
             return JsonSerializer.Deserialize<T>(Result!, options);
         }
 

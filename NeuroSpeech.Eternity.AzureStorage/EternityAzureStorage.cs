@@ -110,9 +110,16 @@ namespace NeuroSpeech.Eternity
                 return null;
             }
             filter = Azure.Data.Tables.TableClient.CreateQueryFilter($"PartitionKey eq {id} and RowKey eq {keyHash}");
-            await foreach(var e in Activities.QueryAsync<TableEntity>(filter, 1))
+            await foreach (var e in Activities.QueryAsync<TableEntity>(filter))
             {
-                return e.ToObject<ActivityStep>();
+                if (e.ContainsKey("Key"))
+                    return e.ToObject<ActivityStep>();
+                var url = e["KeyUrl"].ToString();
+                var blob = ParamStorage.GetBlobClient(url);
+                var stepKey = await blob.DownloadTextAsync();
+                var a = e.ToObject<ActivityStep>();
+                a.Key = stepKey;
+                return a;
             }
             return null;
         }
