@@ -60,6 +60,8 @@ namespace NeuroSpeech.Eternity
 
     public class ActivityStep
     {
+        public static SHA256 sha = SHA256.Create();
+
         public string? Method { get; set; }
 
         public string? ID { get; set; }
@@ -78,7 +80,7 @@ namespace NeuroSpeech.Eternity
 
         public string? Key { get; set; }
 
-        public string KeyHash => Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(Key));
+        public string KeyHash => Convert.ToBase64String(sha.ComputeHash( System.Text.Encoding.UTF8.GetBytes(Key)));
 
         public string? Parameters { get; set; }
 
@@ -154,8 +156,8 @@ namespace NeuroSpeech.Eternity
                 LastUpdated = now
             };
             step.Key = uniqueParameters 
-                ? $"{step.ID}-{step.ActivityType}-{step.Parameters}"
-                : $"{step.ID}-{step.ActivityType}-{step.DateCreated.Ticks}-{step.Parameters}"; 
+                ? $"{step.ID}-{step.ActivityType}-{step.Method}-{step.Parameters}"
+                : $"{step.ID}-{step.ActivityType}-{step.Method}-{step.DateCreated.Ticks}-{step.Parameters}"; 
             // step.ParametersHash = Convert.ToBase64String(sha.ComputeHash( System.Text.Encoding.UTF8.GetBytes(step.Parameters)));
             return step;
         }

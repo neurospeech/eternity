@@ -20,7 +20,7 @@ namespace NeuroSpeech.Eternity
         private readonly TableClient Workflows;
         private readonly TableClient ActivityQueue;
         private readonly BlobContainerClient Locks;
-
+        // private readonly BlobContainerClient ParamStorage;
         
 
         public EternityAzureStorage(string prefix, string connectionString)
@@ -32,6 +32,8 @@ namespace NeuroSpeech.Eternity
             this.Workflows = TableClient.GetTableClient($"{prefix}Workflows".ToLower());
             this.ActivityQueue = TableClient.GetTableClient($"{prefix}Queue".ToLower());
             this.Locks = storageClient.GetBlobContainerClient($"{prefix}Locks".ToLower());
+            // this.ParamStorage = storageClient.GetBlobContainerClient($"{prefix}ParamStorage".ToLower());
+
 
             // QueueClient.CreateIfNotExists();
             try
@@ -44,10 +46,11 @@ namespace NeuroSpeech.Eternity
             }
             catch { }
             try { ActivityQueue.CreateIfNotExists(); } catch { }
-            try
-            {
-                Locks.CreateIfNotExists();
-            } catch { }
+            //try
+            //{
+            //    Locks.CreateIfNotExists();
+            //} catch { }
+            //try { ParamStorage.CreateIfNotExists(); } catch { }
         }
 
         public async Task<IEternityLock> AcquireLockAsync(string id, long sequenceId)
@@ -159,6 +162,9 @@ namespace NeuroSpeech.Eternity
 
         public async Task<ActivityStep> GetStatusAsync(ActivityStep key)
         {
+
+            // Find SequenceID first..
+
             var filter = Azure.Data.Tables.TableClient.CreateQueryFilter($"PartitionKey eq {key.ID} and RowKey eq {key.KeyHash} and Key eq {key.Key}");
             await foreach (var e in Activities.QueryAsync<TableEntity>(filter)) {
                 return e.ToObject<ActivityStep>();
