@@ -158,7 +158,6 @@ LastUpdated,
 ETA,
 Key,
 KeyHash,
-Parameters,
 Status,
 Error,
 Result
@@ -172,7 +171,6 @@ VALUES (
     {key.ETA.UtcTicks},
     {key.Key},
     {key.KeyHash},
-    {key.Parameters},
     {key.Status.ToString()},
     {key.Error},
     {key.Result}
@@ -184,7 +182,7 @@ SELECT last_insert_rowid();");
             // insert if it has any events..
             if (key.ActivityType == ActivityType.Event)
             {
-                var eventNames = JsonSerializer.Deserialize<string[]>(key.Parameters!)!;
+                var eventNames = key.GetEvents()!;
                 foreach (var name in eventNames)
                 {
                     var insert = TemplateQuery.New($"INSERT INTO ActivityEvents(ID,EventName,SequenceID) VALUES ({key.ID}, {name}, {key.SequenceID})");

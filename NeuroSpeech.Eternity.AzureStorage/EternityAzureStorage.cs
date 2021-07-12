@@ -20,7 +20,7 @@ namespace NeuroSpeech.Eternity
         private readonly TableClient Workflows;
         private readonly TableClient ActivityQueue;
         private readonly BlobContainerClient Locks;
-        // private readonly BlobContainerClient ParamStorage;
+        private readonly BlobContainerClient ParamStorage;
         
 
         public EternityAzureStorage(string prefix, string connectionString)
@@ -32,7 +32,7 @@ namespace NeuroSpeech.Eternity
             this.Workflows = TableClient.GetTableClient($"{prefix}Workflows".ToLower());
             this.ActivityQueue = TableClient.GetTableClient($"{prefix}Queue".ToLower());
             this.Locks = storageClient.GetBlobContainerClient($"{prefix}Locks".ToLower());
-            // this.ParamStorage = storageClient.GetBlobContainerClient($"{prefix}ParamStorage".ToLower());
+            this.ParamStorage = storageClient.GetBlobContainerClient($"{prefix}ParamStorage".ToLower());
 
 
             // QueueClient.CreateIfNotExists();
@@ -46,11 +46,12 @@ namespace NeuroSpeech.Eternity
             }
             catch { }
             try { ActivityQueue.CreateIfNotExists(); } catch { }
-            //try
-            //{
-            //    Locks.CreateIfNotExists();
-            //} catch { }
-            //try { ParamStorage.CreateIfNotExists(); } catch { }
+            try
+            {
+                Locks.CreateIfNotExists();
+            }
+            catch { }
+            try { ParamStorage.CreateIfNotExists(); } catch { }
         }
 
         public async Task<IEternityLock> AcquireLockAsync(string id, long sequenceId)
@@ -98,17 +99,17 @@ namespace NeuroSpeech.Eternity
             var filter = Azure.Data.Tables.TableClient.CreateQueryFilter($"PartitionKey eq {id} and RowKey eq {eventName}");
             string keyHash = null;
             string key = null;
-            await foreach (var e in Activities.QueryAsync<TableEntity>(filter))
+            await foreach (var e in Activities.QueryAsync<TableEntity>(filter, 1))
             {
                 key = e.GetString("Key");
-                keyHash = e.GetString("KeyHash");
+                keyHash = e.GetString("StepRowKey");
             }
             if (key == null)
             {
                 return null;
             }
-            filter = Azure.Data.Tables.TableClient.CreateQueryFilter($"PartitionKey eq {id} and RowKey eq {keyHash} and Key eq {key}");
-            await foreach(var e in Activities.QueryAsync<TableEntity>(filter))
+            filter = Azure.Data.Tables.TableClient.CreateQueryFilter($"PartitionKey eq {id} and RowKey eq {keyHash}");
+            await foreach(var e in Activities.QueryAsync<TableEntity>(filter, 1))
             {
                 return e.ToObject<ActivityStep>();
             }
@@ -164,10 +165,20 @@ namespace NeuroSpeech.Eternity
         {
 
             // Find SequenceID first..
-
-            var filter = Azure.Data.Tables.TableClient.CreateQueryFilter($"PartitionKey eq {key.ID} and RowKey ge {key.KeyHash} and Key eq {key.Key}");
+            var prefix = key.KeyHash + "-";
+            var filter = Azure.Data.Tables.TableClient.CreateQueryFilter($"PartitionKey eq {key.ID} and RowKey ge {prefix}");
             await foreach (var e in Activities.QueryAsync<TableEntity>(filter)) {
-                return e.ToObject<ActivityStep>();
+                if(e.ContainsKey("Key"))
+                    return e.ToObject<ActivityStep>();
+                var url = e["KeyUrl"].ToString();
+                var blob = ParamStorage.GetBlobClient(url);
+                var stepKey = await blob.DownloadTextAsync();
+                if(stepKey == key.Key)
+                {
+                    var a = e.ToObject<ActivityStep>();
+                    a.Key = stepKey;
+                    return a;
+                }
             }
             return null;
         }
@@ -186,9 +197,24 @@ namespace NeuroSpeech.Eternity
             // generate new id...
             long id = await Activities.NewSequenceIDAsync(key.ID, "ID");
             key.SequenceID = id;
+            var rowKey = key.KeyHash + "-" + id;
+            var entity = key.ToTableEntity(rowKey);
+            if(key.Key.Length > 30000)
+            {
+                // store it in blob..
+                var keyUrl = key.ID + "/" + rowKey;
+                var blob = ParamStorage.GetBlockBlobClient(keyUrl);
+                var ms = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(key.Key));
+                await blob.UploadAsync(ms);
+                entity.Add("KeyUrl", keyUrl);
+                entity.Remove(nameof(key.Key));
+            } else
+            {
+                entity.Add("Key", key);
+            }
             var actions = new List<TableTransactionAction>
             {
-                new TableTransactionAction(TableTransactionActionType.UpsertReplace, key.ToTableEntity(key.ID, key.KeyHash + "-" + id), ETag.All)
+                new TableTransactionAction(TableTransactionActionType.UpsertReplace, entity, ETag.All)
             };
             // last active event waiting must be added with eventName
             if (key.ActivityType == ActivityType.Event)
@@ -199,7 +225,7 @@ namespace NeuroSpeech.Eternity
                     actions.Add(new TableTransactionAction(TableTransactionActionType.UpsertReplace, new TableEntity(key.ID, name)
                     {
                         { "Key", key.Key },
-                        { "KeyHash", key.KeyHash }                         
+                        { "StepRowKey", rowKey }
                     }, ETag.All));
                 }
             }
@@ -252,7 +278,7 @@ namespace NeuroSpeech.Eternity
 
         public Task UpdateAsync(ActivityStep key)
         {
-            return Activities.UpsertEntityAsync(key.ToTableEntity(key.ID, key.KeyHash));
+            return Activities.UpsertEntityAsync(key.ToTableEntity(key.KeyHash + "-" + key.SequenceID));
         }
 
         public Task UpdateAsync(WorkflowStep key)
@@ -262,6 +288,10 @@ namespace NeuroSpeech.Eternity
 
         public async Task DeleteHistoryAsync(string id)
         {
+            await foreach(var b in ParamStorage.GetBlobsAsync(Azure.Storage.Blobs.Models.BlobTraits.All, Azure.Storage.Blobs.Models.BlobStates.All, id + "/"))
+            {
+                await ParamStorage.DeleteBlobIfExistsAsync(b.Name);
+            }
             await Activities.DeleteAllAsync(id);
         }
     }

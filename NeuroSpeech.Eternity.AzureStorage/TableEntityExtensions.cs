@@ -1,7 +1,10 @@
 ﻿using Azure;
 using Azure.Data.Tables;
+using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Specialized;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -9,6 +12,52 @@ namespace NeuroSpeech.Eternity
 {
     public static class TableEntityExtensions
     {
+        public static Task UploadTextAsync(this BlobClient client, string text)
+        {
+            return client.UploadAsync(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(text)));
+        }
+
+        public static async Task<string> DownloadTextAsync(this BlobClient client)
+        {
+            var r = await client.DownloadAsync();
+            using (r.Value) {
+                var sr = new StreamReader(r.Value.Content, System.Text.Encoding.UTF8);
+                return await sr.ReadToEndAsync();
+            }
+        }
+
+
+        public static TableEntity ToTableEntity(this ActivityStep key, string rowKey)
+        {
+            var te = new TableEntity(key.ID, rowKey)
+                {
+                    { nameof(key.Method), key.Method },
+                    { nameof(key.ID), key.ID },
+                    { nameof(key.ActivityType), Enum.GetName(typeof(ActivityType), key.ActivityType) },
+                    { nameof(key.SequenceID), key.SequenceID },
+                    { nameof(key.DateCreated), key.DateCreated },
+                    { nameof(key.LastUpdated), key.LastUpdated },
+                    { nameof(key.ETA), key.ETA },
+                    { nameof(key.Status) , key.Status }
+                };
+            if(key.QueueToken != null)
+            {
+                te.Add(nameof(key.QueueToken), key.QueueToken);
+            }
+            if(key.Result != null)
+            {
+                te.Add(nameof(key.Result), key.Result);
+            }
+            if(key.Error != null)
+            {
+                te.Add(nameof(key.Error), key.Error);
+            }
+            if(key.Key != null)
+            {
+                te.Add(nameof(key.Key), key.Key);
+            }
+            return te;
+        }
 
         public static async Task DeleteAllAsync(this TableClient client, IEnumerable<(string partitionKey, string rowKey)> items)
         {
