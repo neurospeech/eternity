@@ -232,7 +232,6 @@ namespace NeuroSpeech.Eternity
                 {
                     actions.Add(new TableTransactionAction(TableTransactionActionType.UpsertReplace, new TableEntity(key.ID, "E-" + name)
                     {
-                        { "Key", key.Key },
                         { "StepRowKey", rowKey }
                     }, ETag.All));
                 }
