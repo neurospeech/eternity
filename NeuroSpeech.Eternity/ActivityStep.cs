@@ -80,7 +80,7 @@ namespace NeuroSpeech.Eternity
 
         public string? Key { get; set; }
 
-        public string KeyHash => Convert.ToBase64String(sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(Key)));
+        public string KeyHash => Uri.EscapeDataString(Convert.ToBase64String(sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(Key))));
 
         public string[]? GetEvents() => JsonSerializer.Deserialize<string[]>(Parameters!);
 

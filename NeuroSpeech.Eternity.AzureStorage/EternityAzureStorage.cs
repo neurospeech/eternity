@@ -99,15 +99,9 @@ namespace NeuroSpeech.Eternity
             var name = $"E-{eventName}";
             var filter = Azure.Data.Tables.TableClient.CreateQueryFilter($"PartitionKey eq {id} and RowKey eq {name}");
             string keyHash = null;
-            string key = null;
             await foreach (var e in Activities.QueryAsync<TableEntity>(filter, 1))
             {
-                key = e.GetString("Key");
                 keyHash = e.GetString("StepRowKey");
-            }
-            if (key == null)
-            {
-                return null;
             }
             filter = Azure.Data.Tables.TableClient.CreateQueryFilter($"PartitionKey eq {id} and RowKey eq {keyHash}");
             await foreach (var e in Activities.QueryAsync<TableEntity>(filter))
@@ -174,7 +168,8 @@ namespace NeuroSpeech.Eternity
 
             // Find SequenceID first..
             var prefix = $"H-{key.KeyHash}-";
-            var filter = Azure.Data.Tables.TableClient.CreateQueryFilter($"PartitionKey eq {key.ID} and RowKey ge {prefix}");
+            var next = $"H-{key.KeyHash}-9999999999999999";
+            var filter = Azure.Data.Tables.TableClient.CreateQueryFilter($"PartitionKey eq {key.ID} and RowKey ge {prefix} and RowKey lt {next}");
             await foreach (var e in Activities.QueryAsync<TableEntity>(filter)) {
                 if (e.TryGetValue("Key", out var k))
                 {
