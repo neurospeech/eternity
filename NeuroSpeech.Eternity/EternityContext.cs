@@ -244,6 +244,10 @@ namespace NeuroSpeech.Eternity
                 status.Status = ActivityStatus.Completed;
                 status.Result = "null";
                 await storage.UpdateAsync(status);
+                if(status.QueueToken != null)
+                {
+                    await storage.RemoveQueueAsync(status.QueueToken);
+                }
                 return;
             }
 
