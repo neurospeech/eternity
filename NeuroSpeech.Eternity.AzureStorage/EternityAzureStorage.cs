@@ -96,7 +96,8 @@ namespace NeuroSpeech.Eternity
 
         public async Task<ActivityStep> GetEventAsync(string id, string eventName)
         {
-            var filter = Azure.Data.Tables.TableClient.CreateQueryFilter($"PartitionKey eq {id} and RowKey eq {eventName}");
+            var name = $"E-{eventName}";
+            var filter = Azure.Data.Tables.TableClient.CreateQueryFilter($"PartitionKey eq {id} and RowKey eq {name}");
             string keyHash = null;
             string key = null;
             await foreach (var e in Activities.QueryAsync<TableEntity>(filter, 1))
@@ -165,7 +166,7 @@ namespace NeuroSpeech.Eternity
         {
 
             // Find SequenceID first..
-            var prefix = key.KeyHash + "-";
+            var prefix = $"H-{key.KeyHash}-";
             var filter = Azure.Data.Tables.TableClient.CreateQueryFilter($"PartitionKey eq {key.ID} and RowKey ge {prefix}");
             await foreach (var e in Activities.QueryAsync<TableEntity>(filter)) {
                 if(e.ContainsKey("Key"))
@@ -197,7 +198,7 @@ namespace NeuroSpeech.Eternity
             // generate new id...
             long id = await Activities.NewSequenceIDAsync(key.ID, "ID");
             key.SequenceID = id;
-            var rowKey = key.KeyHash + "-" + id;
+            var rowKey = $"H-{key.KeyHash}-{id}";
             var entity = key.ToTableEntity(rowKey);
             if(key.Key.Length > 30000)
             {
@@ -222,7 +223,7 @@ namespace NeuroSpeech.Eternity
                 string[] eventNames = key.GetEvents();
                 foreach(var name in eventNames)
                 {
-                    actions.Add(new TableTransactionAction(TableTransactionActionType.UpsertReplace, new TableEntity(key.ID, name)
+                    actions.Add(new TableTransactionAction(TableTransactionActionType.UpsertReplace, new TableEntity(key.ID, "E-" + name)
                     {
                         { "Key", key.Key },
                         { "StepRowKey", rowKey }
@@ -278,7 +279,7 @@ namespace NeuroSpeech.Eternity
 
         public Task UpdateAsync(ActivityStep key)
         {
-            return Activities.UpsertEntityAsync(key.ToTableEntity(key.KeyHash + "-" + key.SequenceID));
+            return Activities.UpsertEntityAsync(key.ToTableEntity($"H-{key.KeyHash}-{key.SequenceID}"));
         }
 
         public Task UpdateAsync(WorkflowStep key)
