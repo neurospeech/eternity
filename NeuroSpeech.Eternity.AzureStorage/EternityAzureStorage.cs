@@ -184,7 +184,10 @@ namespace NeuroSpeech.Eternity
             {
                 new TableTransactionAction(TableTransactionActionType.UpsertReplace, key.ToTableEntity(key.ID, key.KeyHash), ETag.All)
             };
-
+            if(key.Parameters?.Length > 32*1024)
+            {
+                throw new ArgumentOutOfRangeException($"Parameter is too large, {key.Parameters}");
+            }
             // last active event waiting must be added with eventName
             if (key.ActivityType == ActivityType.Event)
             {
