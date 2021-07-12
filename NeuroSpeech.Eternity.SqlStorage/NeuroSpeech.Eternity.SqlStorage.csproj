@@ -10,12 +10,16 @@
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\NeuroSpeech.Eternity\NeuroSpeech.Eternity.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All"/>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
     <PackageReference Include="TemplatedQuery" Version="1.0.23" />
   </ItemGroup>
