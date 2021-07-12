@@ -64,7 +64,7 @@ namespace NeuroSpeech.Eternity
                         await b.UploadAsync(new MemoryStream(new byte[] { 1, 2, 3 }));
                     }
                     var bc = b.GetBlobLeaseClient();
-                    var r = await bc.AcquireAsync(BlobLeaseClient.InfiniteLeaseDuration);
+                    var r = await bc.AcquireAsync(TimeSpan.FromSeconds(59));
                     return new EternityBlobLock
                     {
                         LeaseID = r.Value.LeaseId,
@@ -72,7 +72,7 @@ namespace NeuroSpeech.Eternity
                     };
                 } catch (Exception)
                 {
-
+                    await Task.Delay(20000);
                 }
             }
             throw new InvalidOperationException();
