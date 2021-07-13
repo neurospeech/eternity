@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace NeuroSpeech.Eternity
@@ -11,11 +13,31 @@ namespace NeuroSpeech.Eternity
         class JobItem
         {
             public readonly string Key;
-            public readonly Func<Task> Task;
-            public JobItem(string key, Func<Task> task)
+            public readonly T Arg;
+            public readonly Func<T, CancellationToken, Task> Task;
+            public readonly ConcurrentQueue<JobItem> Queue;
+            private readonly TaskCompletionSource<int> CompletionSource;
+            public readonly Task Completion;
+
+            public JobItem(string key, T arg, Func<T, CancellationToken, Task> task, ConcurrentQueue<JobItem> queue)
             {
                 this.Key = key;
+                this.Arg = arg;
                 this.Task = task;
+                this.Queue = queue;
+                this.CompletionSource = new TaskCompletionSource<int>();
+                this.Completion = this.CompletionSource.Task;
+            }
+
+            public void Finish(Exception? ex = null)
+            {
+                if (ex == null)
+                {
+                    CompletionSource.TrySetResult(0);
+                } else
+                {
+                    CompletionSource.TrySetException(ex);
+                }
             }
         }
 
@@ -23,8 +45,9 @@ namespace NeuroSpeech.Eternity
             = new ConcurrentDictionary<string, ConcurrentQueue<JobItem>>();
 
         private BlockingCollection<ConcurrentQueue<JobItem>>[] Pool;
+        private readonly CancellationToken cancellationToken;
 
-        public WorkflowScheduler(int threads = 10)
+        public WorkflowScheduler(int threads, CancellationToken cancellationToken)
         {
             Pool = new BlockingCollection<ConcurrentQueue<JobItem>>[threads];
             for (int i = 0; i < threads; i++)
@@ -33,22 +56,58 @@ namespace NeuroSpeech.Eternity
                 Pool[i] = tasks;
                 Task.Run(() => RunAsync(tasks));
             }
-        }
-
-        private static async Task RunAsync(BlockingCollection<ConcurrentQueue<JobItem>> tasks)
-        {
-            foreach(var item in tasks.GetConsumingEnumerable())
-            {
-                while(item.TryDequeue(out var qi))
+            cancellationToken.Register(() => {
+                foreach (var item in Pool)
                 {
-                    await qi.Task();
+                    item.CompleteAdding();
                 }
-            }
+            });
+            this.cancellationToken = cancellationToken;
         }
 
-        public void Queue(T item, Func<T,string> keyFunc) {
-            var key = keyFunc(item);
+        private async Task RunAsync(BlockingCollection<ConcurrentQueue<JobItem>> tasks)
+        {
+            try
+            {
+                foreach (var item in tasks.GetConsumingEnumerable(cancellationToken))
+                {
+                    if (item.TryDequeue(out var qi))
+                    {
+                        try
+                        {
+                            await qi.Task(qi.Arg, cancellationToken);
+                            qi.Finish();
+                        }
+                        catch (Exception ex)
+                        {
+                            qi.Finish(ex);
+                        }
+                        if (item.IsEmpty)
+                        {
+                            jobs.TryRemove(qi.Key, out var _);
+                        }
+                    }
+                }
+            }catch (TaskCanceledException) { }
+        }
 
+        public Task Queue(string key, T arg, Func<T, CancellationToken, Task> item) {
+            var q = jobs.GetOrAdd(key, (k1) =>
+            {
+                lock (jobs)
+                {
+                    return jobs.GetOrAdd(k1, k2 =>
+                    {
+                        return new ConcurrentQueue<JobItem>();
+                    });
+                }
+            });
+            var ji = new JobItem(key, arg, item, q);
+            q.Enqueue(ji);
+
+            var f = Pool.OrderBy(x => x.Count).First();
+            f.Add(q);
+            return ji.Completion;
         }
 
     }
