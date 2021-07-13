@@ -129,11 +129,21 @@ namespace NeuroSpeech.Eternity
             return status;
         }
 
-        public async Task ProcessMessagesAsync(CancellationToken cancellationToken)
+        public async Task ProcessMessagesAsync(
+            int maxParallelWorkflows = 100, 
+            CancellationToken cancellationToken = default)
         {
+            var ws = new WorkflowScheduler<WorkflowQueueItem>(maxParallelWorkflows, cancellationToken);
             while(!cancellationToken.IsCancellationRequested)
             {
-                await ProcessMessagesOnceAsync();
+                var items = await storage.GetScheduledActivitiesAsync();
+                var tasks = new Task[items.Length];
+                for (int i = 0; i < items.Length; i++)
+                {
+                    var item = items[i];
+                    tasks[i] = ws.Queue(item.ID, item, RunWorkflowAsync);
+                }
+                await Task.WhenAll(tasks);
                 try
                 {
                     var c = new CancellationTokenSource();
@@ -156,7 +166,7 @@ namespace NeuroSpeech.Eternity
 
         }
 
-        private async Task RunWorkflowAsync(WorkflowQueueItem queueItem)
+        private async Task RunWorkflowAsync(WorkflowQueueItem queueItem, CancellationToken cancellation = default)
         {
             var step = await storage.GetWorkflowAsync(queueItem.ID);
             if (step==null || step.Status == ActivityStatus.Completed || step.Status == ActivityStatus.Failed)
