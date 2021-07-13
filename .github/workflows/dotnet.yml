@@ -25,50 +25,25 @@ jobs:
       run: dotnet build --no-restore
     - name: Test
       run: dotnet test --no-build --verbosity normal
+    - name: Pack
+      run: dotnet pack --no-restore
     - name: Publish Eternity
-      uses: rohith/publish-nuget@v2
-      with:
-          PROJECT_FILE_PATH: NeuroSpeech.Eternity/NeuroSpeech.Eternity.csproj
-          NUGET_KEY: ${{secrets.PUBLIC_NUGET_TOKEN}}
-    - name: Publish Azure Storage
-      uses: rohith/publish-nuget@v2
-      with:
-          PROJECT_FILE_PATH: NeuroSpeech.Eternity.AzureStorage/NeuroSpeech.Eternity.AzureStorage.csproj
-          NUGET_KEY: ${{secrets.PUBLIC_NUGET_TOKEN}}
-    - name: Publish Sqlite Storage
-      uses: rohith/publish-nuget@v2
-      with:
-          PROJECT_FILE_PATH: NeuroSpeech.Eternity.SqliteStorage/NeuroSpeech.Eternity.SqliteStorage.csproj
-          NUGET_KEY: ${{secrets.PUBLIC_NUGET_TOKEN}}
+      run: dotnet nuget push **/*.nupkg -k ${NUGET_TOKEN} -s https://api.nuget.org/v3/index.json -n true
+      env:
+         NUGET_TOKEN: ${{secrets.PUBLIC_NUGET_TOKEN}}
 
-    - name: Publish Mocks
-      uses: rohith/publish-nuget@v2
-      with:
-          PROJECT_FILE_PATH: NeuroSpeech.Eternity.Mocks/NeuroSpeech.Eternity.Mocks.csproj
-          NUGET_KEY: ${{secrets.PUBLIC_NUGET_TOKEN}}          
-    - name: Publish ProGet Eternity
-      uses: rohith/publish-nuget@v2
-      with:
-          PROJECT_FILE_PATH: NeuroSpeech.Eternity/NeuroSpeech.Eternity.csproj
-          NUGET_SOURCE: ${{secrets.PROGET_NUGET}}
-          NUGET_KEY: ${{secrets.PROGET_NUGET_TOKEN}}
-    - name: Publish ProGet Azure Storage
-      uses: rohith/publish-nuget@v2
-      with:
-          PROJECT_FILE_PATH: NeuroSpeech.Eternity.AzureStorage/NeuroSpeech.Eternity.AzureStorage.csproj
-          NUGET_SOURCE: ${{secrets.PROGET_NUGET}}
-          NUGET_KEY: ${{secrets.PROGET_NUGET_TOKEN}}
-    - name: Publish ProGet Sqlite Storage
-      uses: rohith/publish-nuget@v2
-      with:
-          PROJECT_FILE_PATH: NeuroSpeech.Eternity.SqliteStorage/NeuroSpeech.Eternity.SqliteStorage.csproj
-          NUGET_SOURCE: ${{secrets.PROGET_NUGET}}
-          NUGET_KEY: ${{secrets.PROGET_NUGET_TOKEN}}
-    - name: Publish ProGet Mocks
-      uses: rohith/publish-nuget@v2
-      with:
-          PROJECT_FILE_PATH: NeuroSpeech.Eternity.Mocks/NeuroSpeech.Eternity.Mocks.csproj
-          NUGET_SOURCE: ${{secrets.PROGET_NUGET}}
-          NUGET_KEY: ${{secrets.PROGET_NUGET_TOKEN}}
-    
-    
+    - name: Publish Eternity Proget
+      run: dotnet nuget push **/*.nupkg -k ${NUGET_KEY} -s ${NUGET_SOURCE} -n true
+      env:
+         NUGET_SOURCE: ${{secrets.PROGET_NUGET}}
+         NUGET_KEY: ${{secrets.PROGET_NUGET_TOKEN}}  
+    # - name: release
+    #  uses: actions/create-release@v1
+    #  id: create_release
+    #  with:
+    #    draft: false
+    #    prerelease: false
+    #    release_name: ${GitBuildVersionSimple}
+    #    tag_name: ${GitBuildVersionSimple}
+    #  env:
+    #    GITHUB_TOKEN: ${{ github.token }}         
