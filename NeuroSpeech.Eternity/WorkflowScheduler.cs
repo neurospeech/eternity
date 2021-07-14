@@ -44,24 +44,19 @@ namespace NeuroSpeech.Eternity
         private ConcurrentDictionary<string, ConcurrentQueue<JobItem>> jobs 
             = new ConcurrentDictionary<string, ConcurrentQueue<JobItem>>();
 
-        private BlockingCollection<ConcurrentQueue<JobItem>>[] Pool;
+        private List<BlockingCollection<ConcurrentQueue<JobItem>>> Pool = new List<BlockingCollection<ConcurrentQueue<JobItem>>>();
+        private readonly int maxThreads;
         private readonly CancellationToken cancellationToken;
 
-        public WorkflowScheduler(int threads, CancellationToken cancellationToken)
+        public WorkflowScheduler(int maxThreads, CancellationToken cancellationToken)
         {
-            Pool = new BlockingCollection<ConcurrentQueue<JobItem>>[threads];
-            for (int i = 0; i < threads; i++)
-            {
-                var tasks = new BlockingCollection<ConcurrentQueue<JobItem>>();
-                Pool[i] = tasks;
-                Task.Run(() => RunAsync(tasks));
-            }
             cancellationToken.Register(() => {
                 foreach (var item in Pool)
                 {
                     item.CompleteAdding();
                 }
             });
+            this.maxThreads = maxThreads;
             this.cancellationToken = cancellationToken;
         }
 
@@ -105,8 +100,22 @@ namespace NeuroSpeech.Eternity
             var ji = new JobItem(key, arg, item, q);
             q.Enqueue(ji);
 
-            var f = Pool.OrderBy(x => x.Count).First();
-            f.Add(q);
+            var first = Pool.FirstOrDefault(x => x.Count == 0);
+            if(first == null)
+            {
+                if (Pool.Count < maxThreads)
+                {
+                    var tasks = new BlockingCollection<ConcurrentQueue<JobItem>>();
+                    Pool.Add(tasks);
+                    Task.Factory.StartNew(() => RunAsync(tasks), TaskCreationOptions.LongRunning);
+                    first = tasks;
+                }
+                else
+                {
+                    first = Pool.OrderBy(x => x.Count).First();
+                }
+            }
+            first.Add(q);
             return ji.Completion;
         }
 
