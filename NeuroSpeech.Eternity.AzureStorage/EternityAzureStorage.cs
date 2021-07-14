@@ -23,7 +23,7 @@ namespace NeuroSpeech.Eternity
         private readonly BlobContainerClient ParamStorage;
         
 
-        public EternityAzureStorage(string prefix, string connectionString)
+        public EternityAzureStorage(string prefix, string connectionString, bool createStorage = false)
         {
             this.TableClient = new TableServiceClient(connectionString);
             // this.QueueClient = new QueueServiceClient(connectionString).GetQueueClient($"{prefix}Workflows".ToLower());
@@ -36,22 +36,26 @@ namespace NeuroSpeech.Eternity
 
 
             // QueueClient.CreateIfNotExists();
-            try
+            if (createStorage)
             {
-                Activities.CreateIfNotExists();
+                try
+                {
+                    Activities.CreateIfNotExists();
+                }
+                catch { }
+                try
+                {
+                    Workflows.CreateIfNotExists();
+                }
+                catch { }
+                try { ActivityQueue.CreateIfNotExists(); } catch { }
+                try
+                {
+                    Locks.CreateIfNotExists();
+                }
+                catch { }
+                try { ParamStorage.CreateIfNotExists(); } catch { }
             }
-            catch { }
-            try {
-                Workflows.CreateIfNotExists();
-            }
-            catch { }
-            try { ActivityQueue.CreateIfNotExists(); } catch { }
-            try
-            {
-                Locks.CreateIfNotExists();
-            }
-            catch { }
-            try { ParamStorage.CreateIfNotExists(); } catch { }
         }
 
         public async Task<IEternityLock> AcquireLockAsync(string id, long sequenceId)
