@@ -82,8 +82,8 @@ namespace NeuroSpeech.Eternity
         /// </summary>
         /// <param name="context"></param>
         /// <param name="id"></param>
-        /// <returns></returns>
-        public static Task<WorkflowStatus<TOutput?>> GetStatusAsync(EternityContext context, string id)
+        /// <returns>null if workflow not found</returns>
+        public static Task<WorkflowStatus<TOutput?>?> GetStatusAsync(EternityContext context, string id)
         {
             return context.GetStatusAsync<TOutput>(id);
         }
@@ -128,6 +128,17 @@ namespace NeuroSpeech.Eternity
         /// <value>True</value>
         public bool DeleteHistory { get; set; } = true;
 
+        /// <summary>
+        /// This will preserve the workflow in the storage after it was successfully executed.
+        /// Default is 7 days.
+        /// </summary>
+        public TimeSpan PreserveTime { get; set; } = TimeSpan.FromDays(7);
+
+        /// <summary>
+        /// This will preserve the workflow in the storge after it was failed.
+        /// Default is 30 days.
+        /// </summary>
+        public TimeSpan FailurePreserveTime { get; set; } = TimeSpan.FromDays(30);
 
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         public EternityContext Context { get; private set; }

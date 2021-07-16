@@ -58,7 +58,14 @@ namespace NeuroSpeech.Eternity.Mocks
         public Task DeleteHistoryAsync(string id)
         {
             list.RemoveAll(x => x.ID == id);
+            return Task.CompletedTask;
+        }
+
+        public Task DeleteWorkflowAsync(string id)
+        {
+            list.RemoveAll(x => x.ID == id);
             queue.RemoveAll(x => x.ID == id);
+            workflows.RemoveAll(x => x.ID == id);
             return Task.CompletedTask;
         }
 
@@ -120,16 +127,21 @@ namespace NeuroSpeech.Eternity.Mocks
             return Task.FromResult(step);
         }
 
-        public Task<string> QueueWorkflowAsync(string id, DateTimeOffset after, string existing = null)
+        public Task<string> QueueWorkflowAsync(WorkflowQueueItem item, string existing = null)
         {
             if(existing != null)
             {
                 var e = queue.FirstOrDefault(x => x.QueueToken == existing);
-                e.ETA = after;
-                e.ID = id;
+                e.ETA = item.ETA;
+                e.ID = item.ID;
+                e.Command = item.Command;
                 return Task.FromResult(existing);
             }
-            var qt = new MockQueueItem { ID = id, ETA = after , QueueToken = Guid.NewGuid().ToString("N") };
+            var qt = new MockQueueItem {
+                ID = item.ID,
+                ETA = item.ETA ,
+                Command = item.Command,
+                QueueToken = Guid.NewGuid().ToString("N") };
             queue.Add(qt);
             return Task.FromResult<string>(qt.QueueToken);
         }

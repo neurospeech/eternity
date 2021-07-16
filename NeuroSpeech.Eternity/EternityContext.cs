@@ -104,7 +104,7 @@ namespace NeuroSpeech.Eternity
             var utcNow = clock.UtcNow;
             var key = WorkflowStep.Workflow(id, type, input!, utcNow, utcNow, options);
             key = await storage.InsertWorkflowAsync(key);
-            await storage.QueueWorkflowAsync(key.ID!, utcNow);
+            await storage.QueueWorkflowAsync(new WorkflowQueueItem { ID = key.ID!, ETA = utcNow });
             Trigger();
             return id;
         }
@@ -115,14 +115,16 @@ namespace NeuroSpeech.Eternity
             var utcNow = at;
             var key = WorkflowStep.Workflow(id, type, input!, at, utcNow, options);
             key = await storage.InsertWorkflowAsync(key);
-            await storage.QueueWorkflowAsync(key.ID!, at);
+            await storage.QueueWorkflowAsync(new WorkflowQueueItem { ID = key.ID!, ETA = at });
             Trigger();
             return id;
         }
 
-        internal async Task<WorkflowStatus<T?>> GetStatusAsync<T>(string id)
+        internal async Task<WorkflowStatus<T?>?> GetStatusAsync<T>(string id)
         {
             var wf = await storage.GetWorkflowAsync(id);
+            if (wf == null)
+                return null;
             var status = new WorkflowStatus<T?>
             {
                 Status = wf.Status,
@@ -180,6 +182,12 @@ namespace NeuroSpeech.Eternity
 
         private async Task RunWorkflowAsync(WorkflowQueueItem queueItem, CancellationToken cancellation = default)
         {
+            if(queueItem.Command == "Delete")
+            {
+                await storage.DeleteWorkflowAsync(queueItem.ID);
+                return;
+            }
+
             var step = await storage.GetWorkflowAsync(queueItem.ID);
             if (step==null || step.Status == ActivityStatus.Completed || step.Status == ActivityStatus.Failed)
             {
@@ -192,12 +200,14 @@ namespace NeuroSpeech.Eternity
             var instance = GetWorkflowInstance(workflowType, step.ID!, step.LastUpdated);
             instance.QueueItemList.Add(queueItem.QueueToken);
             var input = JsonSerializer.Deserialize(step.Parameter!, instance.InputType, options);
+            DateTimeOffset deleteOn;
             try
             {
                 var result = await instance.RunAsync(input!);
                 step.Result = JsonSerializer.Serialize(result, options);
                 step.LastUpdated = clock.UtcNow;
                 step.Status = ActivityStatus.Completed;
+                deleteOn = clock.UtcNow.Add(instance.PreserveTime);
             }
             catch (ActivitySuspendedException)
             {
@@ -211,9 +221,13 @@ namespace NeuroSpeech.Eternity
                 step.Error = ex.ToString();
                 step.Status = ActivityStatus.Failed;
                 step.LastUpdated = clock.UtcNow;
+                deleteOn = clock.UtcNow.Add(instance.PreserveTime);
             }
             await storage.UpdateAsync(step);
             await storage.RemoveQueueAsync(instance.QueueItemList.ToArray());
+
+            await storage.QueueWorkflowAsync(new WorkflowQueueItem { ID = instance.ID, ETA = deleteOn, Command = "Delete" });
+
             if (instance.DeleteHistory)
             {
                 try
@@ -317,7 +331,7 @@ namespace NeuroSpeech.Eternity
             key.Status = ActivityStatus.Completed;
             await storage.UpdateAsync(key);
             // we need to change queue token here...
-            key.QueueToken = await storage.QueueWorkflowAsync(key.ID!, key.ETA, key.QueueToken);
+            key.QueueToken = await storage.QueueWorkflowAsync(new WorkflowQueueItem { ID = key.ID!, ETA = key.ETA }, key.QueueToken);
             Trigger();
         }
 
@@ -382,7 +396,7 @@ namespace NeuroSpeech.Eternity
                 return r;
             }
             key = await storage.InsertActivityAsync(key);
-            var qi = await storage.QueueWorkflowAsync(key.ID!, key.ETA);
+            var qi = await storage.QueueWorkflowAsync(new WorkflowQueueItem { ID = key.ID!, ETA = key.ETA });
             key.QueueToken = qi;
             workflow.QueueItemList.Add(qi);
             if (onCreate != null)

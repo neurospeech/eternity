@@ -26,6 +26,9 @@ namespace NeuroSpeech.Eternity
         Error Text
     );
 
+    CREATE INDEX IF NOT EXISTS IX_Workflows_DateCreated
+    ON Workflows (DateCreated);
+
     CREATE TABLE IF NOT EXISTS Activities (
         SequenceID INTEGER PRIMARY KEY AUTOINCREMENT,
         ID TEXT NOT NULL,
@@ -62,7 +65,8 @@ namespace NeuroSpeech.Eternity
         ID TEXT,
         ETA INTEGER,
         ETALocked INTEGER,
-        CID INTEGER);
+        CID INTEGER,
+        Command TEXT);
 
     CREATE INDEX IF NOT EXISTS IX_QueueTokens_ETA
     ON QueueTokens (ETA);
