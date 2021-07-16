@@ -14,7 +14,7 @@ namespace NeuroSpeech.Eternity
     /// <typeparam name="TWorkflow">Workflow itself</typeparam>
     /// <typeparam name="TInput">Type of input</typeparam>
     /// <typeparam name="TOutput">Type of output</typeparam>
-    public abstract class Workflow<TWorkflow,TInput,TOutput>: IWorkflow
+    public abstract class Workflow<TWorkflow,TInput,TOutput>: IWorkflow, IWorkflowObject
         where TWorkflow: Workflow<TWorkflow,TInput,TOutput>
     {
 
