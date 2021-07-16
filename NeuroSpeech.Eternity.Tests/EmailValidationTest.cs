@@ -141,7 +141,11 @@ namespace NeuroSpeech.Eternity.Tests
 
             Assert.AreEqual(status.Result, "\"Verified\"");
 
-            Assert.AreEqual(0, engine.Storage.QueueSize);
+            engine.Clock.UtcNow += TimeSpan.FromDays(60);
+
+            await context.ProcessMessagesOnceAsync();
+
+           Assert.AreEqual(0, engine.Storage.QueueSize);
 
         }
 
@@ -180,6 +184,10 @@ namespace NeuroSpeech.Eternity.Tests
             Assert.AreEqual(status.Status, ActivityStatus.Completed);
 
             Assert.AreEqual(status.Result, "\"NotVerified\"");
+
+            engine.Clock.UtcNow += TimeSpan.FromDays(60);
+
+            await context.ProcessMessagesOnceAsync();
 
             Assert.AreEqual(0, engine.Storage.QueueSize);
 
