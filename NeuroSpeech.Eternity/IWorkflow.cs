@@ -25,5 +25,9 @@ namespace NeuroSpeech.Eternity
         bool DeleteHistory { get; }
 
         string ID { get; }
+
+        TimeSpan PreserveTime { get; }
+
+        TimeSpan FailurePreserveTime { get;}
     }
 }

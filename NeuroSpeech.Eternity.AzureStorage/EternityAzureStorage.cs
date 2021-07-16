@@ -163,7 +163,8 @@ namespace NeuroSpeech.Eternity
             }
             return list.Select(x => new WorkflowQueueItem {
                 ID = x.GetString("Message"),
-                QueueToken = $"{x.PartitionKey},{x.RowKey},{x.ETag}"
+                QueueToken = $"{x.PartitionKey},{x.RowKey},{x.ETag}",
+                Command = x.TryGetValue("Command", out var c) ? c.ToString() : null
             }).ToArray();
         }
 
@@ -250,13 +251,13 @@ namespace NeuroSpeech.Eternity
             return step;
         }
 
-        public async Task<string> QueueWorkflowAsync(string id, DateTimeOffset after, string existing = null)
+        public async Task<string> QueueWorkflowAsync(WorkflowQueueItem item, string existing = null)
         {
             if (existing != null)
             {
                 await RemoveQueueAsync(existing);
             }
-            var utc = after.UtcDateTime;
+            var utc = item.ETA;
             var day = utc.Date.Ticks.ToStringWithZeros();
             var time = utc.TimeOfDay.Ticks.ToStringWithZeros();
             for (long sid = DateTime.UtcNow.Ticks; sid <= long.MaxValue; sid++)
@@ -264,10 +265,15 @@ namespace NeuroSpeech.Eternity
                 try
                 {
                     var key = $"{time}-{sid.ToStringWithZeros()}";
-                    var r = await ActivityQueue.AddEntityAsync(new TableEntity(day, key) {
-                        { "Message", id },
-                        { "ETA", after }
-                    });
+                    var eq = new TableEntity(day, key) {
+                        { "Message", item.ID },
+                        { "ETA", item.ETA }
+                    };
+                    if(item.Command != null)
+                    {
+                        eq.Add("Command", item.Command);
+                    }
+                    var r = await ActivityQueue.AddEntityAsync(eq);
                     return $"{day},{key},{r.Headers.ETag.GetValueOrDefault()}";
                 }
                 catch (RequestFailedException ex)
@@ -304,6 +310,12 @@ namespace NeuroSpeech.Eternity
                 await ParamStorage.DeleteBlobIfExistsAsync(b.Name);
             }
             await Activities.DeleteAllAsync(id);
+        }
+
+        public async Task DeleteWorkflowAsync(string id)
+        {
+            await DeleteHistoryAsync(id);
+            await Workflows.DeleteAllAsync(id);
         }
     }
 }

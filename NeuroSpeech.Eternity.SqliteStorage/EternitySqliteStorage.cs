@@ -41,6 +41,13 @@ namespace NeuroSpeech.Eternity
             return conn;
         }
 
+        public async Task<List<WorkflowStep>> EnumerateWorkflowsAsync(int start, int size = 100)
+        {
+            using var db = await Open();
+            var q = TemplateQuery.New($"SELECT * FROM Workflows ORDER BY DateCreated DESC LIMIT {size} OFFSET {start}");
+            return await db.FromSqlAsync<WorkflowStep>(q, true);
+        }
+
         public async Task<IEternityLock> AcquireLockAsync(string id, long sequenceId)
         {
             while (true)
@@ -226,7 +233,7 @@ SELECT last_insert_rowid();");
             return step;
         }
 
-        public async Task<string> QueueWorkflowAsync(string id, DateTimeOffset after, string? existing = null)
+        public async Task<string> QueueWorkflowAsync(WorkflowQueueItem item, string? existing = null)
         {
             using var db = await Open();
             if (existing != null)
@@ -235,10 +242,11 @@ SELECT last_insert_rowid();");
                 await db.ExecuteNonQueryAsync(TemplateQuery.New($@"DELETE FROM QueueTokens WHERE Token={eid}"));
             }
             var q = TemplateQuery.New(@$"
-INSERT INTO QueueTokens(ID,ETA,ETALocked,CID)
+INSERT INTO QueueTokens(ID,ETA,Command,ETALocked,CID)
 VALUES (
-    {id},
-    {after.UtcTicks},
+    {item.ID},
+    {item.ETA.UtcTicks},
+    {item.Command},
     {0},
     {0}
 );
@@ -296,6 +304,17 @@ WHERE
 ");
 
             await db.ExecuteNonQueryAsync(q);
+        }
+
+        public async Task DeleteWorkflowAsync(string id)
+        {
+            using var db = await Open();
+            var query = TemplateQuery.New(@$"
+DELETE FROM Activities WHERE ID={id};
+DELETE FROM ActivityEvents WHERE ID={id};
+DELETE FROM Workflows WHERE ID={id};
+");
+            db.ExecuteNonQuery(query);
         }
     }
 }

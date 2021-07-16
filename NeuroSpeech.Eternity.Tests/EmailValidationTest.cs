@@ -86,6 +86,18 @@ namespace NeuroSpeech.Eternity.Tests
 
             Assert.AreEqual(status.Result, "\"Verified\"");
 
+
+            var r = await SignupWorkflow.GetStatusAsync(context, id);
+            Assert.IsNotNull(r);
+
+            engine.Clock.UtcNow += TimeSpan.FromDays(60);
+
+            await context.ProcessMessagesOnceAsync();
+
+            await context.ProcessMessagesOnceAsync();
+
+            r = await SignupWorkflow.GetStatusAsync(context, id);
+            Assert.IsNull(r);
             Assert.AreEqual(0, engine.Storage.QueueSize);
         }
 
