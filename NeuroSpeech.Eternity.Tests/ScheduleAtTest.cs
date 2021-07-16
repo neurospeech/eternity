@@ -93,6 +93,10 @@ namespace NeuroSpeech.Eternity.Tests
             Assert.AreEqual("b", engine.Bag["2"]);
             Assert.AreEqual(ActivityStatus.Completed, status.Status);
             Assert.AreEqual("\"ok\"", status.Result);
+            engine.Clock.UtcNow += TimeSpan.FromDays(60);
+
+            await context.ProcessMessagesOnceAsync();
+
             Assert.AreEqual(0, engine.Storage.QueueSize);
         }
 
@@ -134,6 +138,10 @@ namespace NeuroSpeech.Eternity.Tests
             Assert.AreEqual("b", engine.Bag["2"]);
             Assert.AreEqual(ActivityStatus.Completed, status.Status);
             Assert.AreEqual("\"ok\"", status.Result);
+            engine.Clock.UtcNow += TimeSpan.FromDays(60);
+
+            await context.ProcessMessagesOnceAsync();
+
             Assert.AreEqual(0, engine.Storage.QueueSize);
         }
 
