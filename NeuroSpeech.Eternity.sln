@@ -21,7 +21,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NeuroSpeech.Eternity.Sqlite
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NeuroSpeech.Eternity.SqlStorage", "NeuroSpeech.Eternity.SqlStorage\NeuroSpeech.Eternity.SqlStorage.csproj", "{6BB187D6-EB15-40E0-AB09-37FD6F275859}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NeuroSpeech.Eternity.SqliteStorage.Tests", "NeuroSpeech.Eternity.SqliteStorage.Tests\NeuroSpeech.Eternity.SqliteStorage.Tests.csproj", "{0CCDD6B8-80D8-4FC0-B6E2-54A0F5469CAF}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NeuroSpeech.Eternity.SqliteStorage.Tests", "NeuroSpeech.Eternity.SqliteStorage.Tests\NeuroSpeech.Eternity.SqliteStorage.Tests.csproj", "{0CCDD6B8-80D8-4FC0-B6E2-54A0F5469CAF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NeuroSpeech.Eternity.DependencyInjectionExtensions", "NeuroSpeech.Eternity.DependencyInjectionExtensions\NeuroSpeech.Eternity.DependencyInjectionExtensions.csproj", "{5200E2F8-58F8-4C67-B8DE-4418DF6746F3}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -57,6 +59,10 @@ Global
 		{0CCDD6B8-80D8-4FC0-B6E2-54A0F5469CAF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0CCDD6B8-80D8-4FC0-B6E2-54A0F5469CAF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0CCDD6B8-80D8-4FC0-B6E2-54A0F5469CAF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5200E2F8-58F8-4C67-B8DE-4418DF6746F3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5200E2F8-58F8-4C67-B8DE-4418DF6746F3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5200E2F8-58F8-4C67-B8DE-4418DF6746F3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5200E2F8-58F8-4C67-B8DE-4418DF6746F3}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
