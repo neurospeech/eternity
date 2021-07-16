@@ -37,6 +37,7 @@ namespace NeuroSpeech.Eternity.Mocks
             services.AddSingleton<IEternityClock>(Clock);
             services.AddSingleton(Bag);
             services.AddSingleton<IEternityStorage>(Storage);
+            services.AddSingleton<EternityServiceScopeFactory>();
             services.AddSingleton(EmailService);
             services.AddSingleton<EternityContext>();
             builder?.Invoke(services);

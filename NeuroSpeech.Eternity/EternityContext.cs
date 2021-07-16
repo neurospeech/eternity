@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -19,11 +18,23 @@ namespace NeuroSpeech.Eternity
         public DateTimeOffset UtcNow => DateTimeOffset.UtcNow;
     }
 
+    public interface IEternityServiceScope: IDisposable
+    {
+        IServiceProvider ServiceProvider {
+            get;
+        }
+    }
+
+    public interface IServiceScopeFactory{
+        IEternityServiceScope CreateScope(IServiceProvider services);
+    }
+
     public class EternityContext
     {
         private readonly IEternityStorage storage;
         private readonly IServiceProvider services;
         private readonly IEternityClock clock;
+        private readonly IServiceScopeFactory? scopeFactory;
         private readonly System.Text.Json.JsonSerializerOptions options;
         private CancellationTokenSource? waiter;
 
@@ -42,6 +53,7 @@ namespace NeuroSpeech.Eternity
             this.storage = storage;
             this.services = services;
             this.clock = clock;
+            this.scopeFactory = services?.GetService(typeof(IServiceScopeFactory)) as IServiceScopeFactory;
             this.options = new JsonSerializerOptions()
             {
                 AllowTrailingCommas = true,
@@ -456,14 +468,14 @@ namespace NeuroSpeech.Eternity
                         return;
                 }
 
-                using var scope = services.CreateScope();
+                using var scope = scopeFactory?.CreateScope(services);
 
                 try
                 {
                     workflow.IsActivityRunning = true;
                     var method = type.GetMethod(key.Method);
 
-                    var parameters = BuildParameters(method, key.Parameters, scope.ServiceProvider);
+                    var parameters = BuildParameters(method, key.Parameters, scope?.ServiceProvider ?? services);
 
                     // if type is generated...
                     var result = (workflow.IsGenerated || !EmitAvailable)
@@ -497,7 +509,7 @@ namespace NeuroSpeech.Eternity
             }
         }
 
-        private object?[] BuildParameters(MethodInfo method, string? parameters, IServiceProvider serviceProvider)
+        private object?[] BuildParameters(MethodInfo method, string? parameters, IServiceProvider? serviceProvider)
         {
             var pas = method.GetParameters();
             var result = new object?[pas.Length];
@@ -511,7 +523,11 @@ namespace NeuroSpeech.Eternity
                     result[i] = JsonSerializer.Deserialize(value!, pa.ParameterType, options);
                     continue;
                 }
-                result[i] = serviceProvider.GetRequiredService(pa.ParameterType);
+                if (serviceProvider == null)
+                    throw new ArgumentNullException($"{nameof(serviceProvider)} is null");
+                var serviceRequested = serviceProvider.GetService(pa.ParameterType)
+                    ?? throw new ArgumentException($"No service registered for {pa.ParameterType.FullName}");
+                result[i] = serviceRequested;
             }
             return result;
         }
