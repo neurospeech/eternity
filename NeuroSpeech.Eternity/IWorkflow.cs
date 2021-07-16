@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 
 namespace NeuroSpeech.Eternity
 {
+
     internal interface IWorkflow
     {
         void Init(string id, EternityContext context, DateTimeOffset start, bool generated);
