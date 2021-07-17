@@ -5,6 +5,7 @@ namespace NeuroSpeech.Eternity
 {
     public interface IWorkflowObject
     {
+
         Task<T> InternalScheduleResultAsync<T>(string name, params object?[] parameters);
         Task InternalScheduleAsync(string method, params object?[] items);
 

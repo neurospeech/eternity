@@ -49,6 +49,7 @@ namespace NeuroSpeech.Eternity
             string? description,
             DateTimeOffset eta,
             DateTimeOffset now,
+            string? parentID,
             JsonSerializerOptions? options = default)
         {
             var step = new WorkflowStep
@@ -57,6 +58,7 @@ namespace NeuroSpeech.Eternity
                 Category = workflowType.Name,
                 Description = description,
                 ID = id,
+                ParentID = parentID,
                 Parameter = JsonSerializer.Serialize(input, options),
                 // step.ParametersHash = Convert.ToBase64String(sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(step.Parameters)));
                 ETA = eta,
@@ -64,6 +66,13 @@ namespace NeuroSpeech.Eternity
                 LastUpdated = now
             };
             return step;
+        }
+
+        internal T? AsResult<T>(JsonSerializerOptions options)
+        {
+            if (Result == null)
+                return default;
+            return JsonSerializer.Deserialize<T>(Result!, options);
         }
     }
 

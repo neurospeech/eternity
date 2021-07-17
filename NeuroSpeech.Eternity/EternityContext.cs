@@ -103,7 +103,7 @@ namespace NeuroSpeech.Eternity
             input.ID ??= Guid.NewGuid().ToString("N");
             var utcNow = clock.UtcNow;
             var eta = input.ETA ?? utcNow;
-            var key = WorkflowStep.Workflow(input.ID, type, input.Input!, input.Description, eta, utcNow, options);
+            var key = WorkflowStep.Workflow(input.ID, type, input.Input!, input.Description, eta, utcNow, input.ParentID, options);
             key = await storage.InsertWorkflowAsync(key);
             await storage.QueueWorkflowAsync(new WorkflowQueueItem { ID = key.ID!, ETA = utcNow });
             Trigger();
@@ -233,6 +233,10 @@ namespace NeuroSpeech.Eternity
                 step.LastUpdated = clock.UtcNow;
                 deleteOn = clock.UtcNow.Add(instance.PreserveTime);
             }
+            if (step.ParentID != null)
+            {
+                await RaiseEventAsync(step.ParentID, step.ID!, "Success");
+            }
             await storage.UpdateAsync(step);
             await storage.RemoveQueueAsync(instance.QueueItemList.ToArray());
 
@@ -272,17 +276,26 @@ namespace NeuroSpeech.Eternity
             var utcNow = clock.UtcNow;
             input.ETA ??= utcNow;
             var key = ActivityStep.Child(workflow.ID, childType, input.Input!, input.ETA.Value, utcNow, options);
-            var status = await GetActivityResultAsync(workflow, key);
-            switch (status.Status)
+            var status = await GetActivityResultAsync(workflow, key, async t => {
+                input.ParentID = workflow.ID;
+                t.Result = await this.CreateAsync<TInput, TOutput>(childType, input);
+                t.Status = ActivityStatus.Completed;
+                await storage.UpdateAsync(t);
+                return t;
+            });
+
+            // now wait for event..
+            var r = await this.WaitForExternalEventsAsync(workflow, new string[] { status.Result! }, utcNow.AddDays(1));
+            if(r.name == status.Result)
             {
-                case ActivityStatus.Completed:
-                    workflow.SetCurrentTime(status.LastUpdated);
-                    return status.AsResult<TOutput>(options);
-                case ActivityStatus.Failed:
-                    workflow.SetCurrentTime(status.LastUpdated);
-                    throw new ActivityFailedException(status.Error!);
+                var ws = await storage.GetWorkflowAsync(r.name!);
+                if(ws.Status == ActivityStatus.Failed)
+                {
+                    throw new ActivityFailedException(ws.Error!);
+                }
+                return ws.AsResult<TOutput?>(options);
             }
-            throw new InvalidOperationException();
+            throw new TimeoutException();
         }
 
         internal async Task Delay(IWorkflow workflow, string id, DateTimeOffset timeout)
@@ -366,13 +379,12 @@ namespace NeuroSpeech.Eternity
         internal async Task<(string? name, string? value)> WaitForExternalEventsAsync(
             IWorkflow workflow, 
             string[] names, 
-            DateTimeOffset eta,
-            Func<ActivityStep,Task<ActivityStep>>? onCreate = null)
+            DateTimeOffset eta)
         {
 
             var key = ActivityStep.Event(workflow.ID, names, eta, workflow.CurrentUtc);
 
-            var status = await GetActivityResultAsync(workflow, key, onCreate);
+            var status = await GetActivityResultAsync(workflow, key);
 
             while (true)
             {

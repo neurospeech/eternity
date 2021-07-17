@@ -7,6 +7,8 @@ namespace NeuroSpeech.Eternity
 
     internal interface IWorkflow
     {
+        EternityContext Context { get; }
+
         void Init(string id, EternityContext context, DateTimeOffset start, bool generated);
         void SetCurrentTime(DateTimeOffset time);
 

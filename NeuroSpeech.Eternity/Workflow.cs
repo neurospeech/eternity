@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading;
@@ -20,6 +21,7 @@ namespace NeuroSpeech.Eternity
         /// Leave it empty if you want to start immediately
         /// </summary>
         public DateTimeOffset? ETA { get; set; }
+        internal string? ParentID { get; set; }
     }
 
     /// <summary>
@@ -57,6 +59,25 @@ namespace NeuroSpeech.Eternity
                 Input = input,
                 Description = description
             });
+        }
+
+        /// <summary>
+        /// Executes current workflow within given parent, execution of
+        /// parent workflow will be blocked till this workflow is completed
+        /// </summary>
+        /// <param name="workflow"></param>
+        /// <param name="input"></param>
+        /// <param name="description"></param>
+        /// <returns></returns>
+        public static Task<TOutput?> ExecuteAsync(IWorkflowObject workflow, TInput input, string? description = null)
+        {
+            var w = (workflow as IWorkflow)!;
+            return w.Context.ChildAsync<TInput,TOutput?>(
+                w,
+                typeof(TWorkflow), new WorkflowOptions<TInput> {
+                    Input = input,
+                    Description = description
+                });
         }
 
         /// <summary>
@@ -258,6 +279,58 @@ namespace NeuroSpeech.Eternity
         {
             var result = await RunAsync((TInput)input);
             return result!;
+        }
+
+        /// <summary>
+        /// Use this to fan-out as it will handle Suspended activities correctly
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="tasks"></param>
+        /// <returns></returns>
+        protected async Task<IReadOnlyList<T?>> WhenAll<T>(IEnumerable<Task<T?>> tasks)
+        {
+            var final = new List<Task<(T? result,Exception? exception)>>();
+            foreach(var item in tasks)
+            {
+                final.Add(AwaitAsync(item));
+            }
+            var intermediateResults = await Task.WhenAll(final);
+
+            var errors = new StringBuilder();
+
+            var results = new List<T?>();
+
+            foreach(var r in intermediateResults)
+            {
+                if (r.exception != null)
+                {
+                    // we need to await fan in 
+                    // till all tasks are completed
+                    // finished or failed...
+                    if (r.exception is ActivitySuspendedException)
+                        throw r.exception;
+                    errors.AppendLine(r.exception.ToString());
+                    continue;
+                }
+                results.Add(r.result);
+            }
+
+            if (errors.Length > 0) {
+                throw new ActivityFailedException(errors.ToString());
+            }
+
+            return results;
+
+            static async Task<(T?, Exception?)> AwaitAsync(Task<T?> item)
+            {
+                try
+                {
+                    return (await item, null);
+                } catch (Exception ex)
+                {
+                    return (default, ex);
+                }
+            }
         }
     }
 }

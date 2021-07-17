@@ -22,6 +22,7 @@ namespace NeuroSpeech.Eternity
         ETA INTEGER NOT NULL,
         DateCreated INTEGER NOT NULL,
         LastUpdated INTEGER NOT NULL,
+        ParentID TEXT,
         Status TEXT,
         Result TEXT,
         Error Text
@@ -29,6 +30,10 @@ namespace NeuroSpeech.Eternity
 
     CREATE INDEX IF NOT EXISTS IX_Workflows_DateCreated
     ON Workflows (DateCreated);
+
+    CREATE INDEX IF NOT EXISTS IX_Workflows_ParentID
+    ON Workflows (ParentID) WHERE ParentID IS NOT NULL;
+
 
     CREATE TABLE IF NOT EXISTS Activities (
         SequenceID INTEGER PRIMARY KEY AUTOINCREMENT,
