@@ -188,6 +188,8 @@ namespace NeuroSpeech.Eternity
             }
             var ws = new WorkflowScheduler<WorkflowQueueItem>(maxParallelWorkflows, cancellationToken);
             var items = await storage.GetScheduledActivitiesAsync();
+            if (items.Length == 0)
+                return items.Length;
             var tasks = new Task[items.Length];
             for (int i = 0; i < items.Length; i++)
             {
