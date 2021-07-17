@@ -170,14 +170,32 @@ namespace NeuroSpeech.Eternity
             }
         }
 
-        public async Task ProcessMessagesOnceAsync()
-        {
-            var items = await storage.GetScheduledActivitiesAsync();
-            foreach(var item in items)
-            {
-                await this.RunWorkflowAsync(item);
-            }
+        private Task<int>? previousTask = null;
 
+        public Task<int> ProcessMessagesOnceAsync(int maxParallelWorkflows = 100, CancellationToken cancellationToken = default) {
+            previousTask = InternalProcessMessagesOnceAsync(previousTask, maxParallelWorkflows, cancellationToken);
+            return previousTask;
+        }
+
+        private async Task<int> InternalProcessMessagesOnceAsync(
+            Task<int>? previous,
+            int maxParallelWorkflows = 100, 
+            CancellationToken cancellationToken = default)
+        {
+            if(previous != null)
+            {
+                await previous;
+            }
+            var ws = new WorkflowScheduler<WorkflowQueueItem>(maxParallelWorkflows, cancellationToken);
+            var items = await storage.GetScheduledActivitiesAsync();
+            var tasks = new Task[items.Length];
+            for (int i = 0; i < items.Length; i++)
+            {
+                var item = items[i];
+                tasks[i] = ws.Queue(item.ID, item, RunWorkflowAsync);
+            }
+            await Task.WhenAll(tasks);
+            return items.Length;
         }
 
         private async Task RunWorkflowAsync(WorkflowQueueItem queueItem, CancellationToken cancellation = default)

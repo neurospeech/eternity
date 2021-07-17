@@ -20,7 +20,6 @@ namespace NeuroSpeech.Eternity.Mocks
 
     public class MockQueueItem: WorkflowQueueItem
     {
-        public DateTimeOffset ETA { get; set; }
     }
 
     public class MockStorage : IEternityStorage
@@ -150,11 +149,7 @@ namespace NeuroSpeech.Eternity.Mocks
         {
             foreach (var token in tokens)
             {
-                int index = queue.FindIndex(x => x.QueueToken == token);
-                if (index != -1)
-                {
-                    queue.RemoveAt(index);
-                }
+                queue.RemoveAll(x => x.QueueToken == token);
             }
             return Task.CompletedTask;
         }
