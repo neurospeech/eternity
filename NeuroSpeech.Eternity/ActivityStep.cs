@@ -23,6 +23,13 @@ namespace NeuroSpeech.Eternity
 
         public string? Category { get; set; }
 
+        public string? Description { get; set; }
+
+        /// <summary>
+        /// ID of Parent Workflow
+        /// </summary>
+        public string? ParentID { get; set; }
+
         public string? ID { get; set; }
         public string? Parameter { get; set; }
         public DateTimeOffset ETA { get; set; }
@@ -39,6 +46,7 @@ namespace NeuroSpeech.Eternity
             string id,
             Type workflowType,
             object input,
+            string? description,
             DateTimeOffset eta,
             DateTimeOffset now,
             JsonSerializerOptions? options = default)
@@ -47,6 +55,7 @@ namespace NeuroSpeech.Eternity
             {
                 WorkflowType = workflowType.AssemblyQualifiedName,
                 Category = workflowType.Name,
+                Description = description,
                 ID = id,
                 Parameter = JsonSerializer.Serialize(input, options),
                 // step.ParametersHash = Convert.ToBase64String(sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(step.Parameters)));
@@ -180,18 +189,24 @@ namespace NeuroSpeech.Eternity
             return step;
         }
 
-        internal static ActivityStep Child(string parentID, string childId, DateTimeOffset eta, DateTimeOffset utcNow)
+        internal static ActivityStep Child(
+            string parentID, 
+            Type type, 
+            object parameters , 
+            DateTimeOffset eta, 
+            DateTimeOffset utcNow,
+            JsonSerializerOptions? options = null)
         {
             var step = new ActivityStep
             {
                 ID = parentID,
                 ActivityType = ActivityType.Child,
-                Parameters = childId,
+                Parameters = JsonSerializer.Serialize(parameters, options),
                 ETA = eta,
                 DateCreated = utcNow,
                 LastUpdated = utcNow
             };
-            step.Key = $"{step.ID}-{childId}";
+            step.Key = $"{step.ID}-{step.ActivityType}-{step.parameters}";
             return step;
         }
     }

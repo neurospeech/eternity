@@ -18,6 +18,7 @@ namespace NeuroSpeech.Eternity
         WorkflowType TEXT NOT NULL,
         Category TEXT,
         Parameter TEXT,
+        Description TEXT,
         ETA INTEGER NOT NULL,
         DateCreated INTEGER NOT NULL,
         LastUpdated INTEGER NOT NULL,

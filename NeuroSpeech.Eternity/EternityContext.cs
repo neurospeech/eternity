@@ -98,26 +98,16 @@ namespace NeuroSpeech.Eternity
             }
         }
 
-        internal async Task<string> CreateAsync<TInput, TOutput>(Type type, TInput input, string? id = null)
+        internal async Task<string> CreateAsync<TInput, TOutput>(Type type, WorkflowOptions<TInput> input)
         {
-            id ??= Guid.NewGuid().ToString("N");
+            input.ID ??= Guid.NewGuid().ToString("N");
             var utcNow = clock.UtcNow;
-            var key = WorkflowStep.Workflow(id, type, input!, utcNow, utcNow, options);
+            var eta = input.ETA ?? utcNow;
+            var key = WorkflowStep.Workflow(input.ID, type, input.Input!, input.Description, eta, utcNow, options);
             key = await storage.InsertWorkflowAsync(key);
             await storage.QueueWorkflowAsync(new WorkflowQueueItem { ID = key.ID!, ETA = utcNow });
             Trigger();
-            return id;
-        }
-
-        internal async Task<string> CreateAtAsync<TInput, TOutput>(Type type, TInput input, DateTimeOffset at, string? id = null)
-        {
-            id ??= Guid.NewGuid().ToString("N");
-            var utcNow = at;
-            var key = WorkflowStep.Workflow(id, type, input!, at, utcNow, options);
-            key = await storage.InsertWorkflowAsync(key);
-            await storage.QueueWorkflowAsync(new WorkflowQueueItem { ID = key.ID!, ETA = at });
-            Trigger();
-            return id;
+            return input.ID;
         }
 
         internal async Task<WorkflowStatus<T?>?> GetStatusAsync<T>(string id)
@@ -276,6 +266,24 @@ namespace NeuroSpeech.Eternity
         //    }
         //    throw new TimeoutException();
         //}
+
+        internal async Task<TOutput?> ChildAsync<TInput, TOutput>(IWorkflow workflow, Type childType, WorkflowOptions<TInput> input)
+        {
+            var utcNow = clock.UtcNow;
+            input.ETA ??= utcNow;
+            var key = ActivityStep.Child(workflow.ID, childType, input.Input!, input.ETA.Value, utcNow, options);
+            var status = await GetActivityResultAsync(workflow, key);
+            switch (status.Status)
+            {
+                case ActivityStatus.Completed:
+                    workflow.SetCurrentTime(status.LastUpdated);
+                    return status.AsResult<TOutput>(options);
+                case ActivityStatus.Failed:
+                    workflow.SetCurrentTime(status.LastUpdated);
+                    throw new ActivityFailedException(status.Error!);
+            }
+            throw new InvalidOperationException();
+        }
 
         internal async Task Delay(IWorkflow workflow, string id, DateTimeOffset timeout)
         {

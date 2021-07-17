@@ -8,6 +8,20 @@ using System.Threading.Tasks;
 
 namespace NeuroSpeech.Eternity
 {
+    public class WorkflowOptions<T>
+    {
+        public string? ID { get; set; }
+
+        public T Input { get; set; }
+
+        public string? Description { get; set; }
+
+        /// <summary>
+        /// Leave it empty if you want to start immediately
+        /// </summary>
+        public DateTimeOffset? ETA { get; set; }
+    }
+
     /// <summary>
     /// Base class for Eternity Workflow
     /// </summary>
@@ -17,6 +31,17 @@ namespace NeuroSpeech.Eternity
     public abstract class Workflow<TWorkflow,TInput,TOutput>: IWorkflow, IWorkflowObject
         where TWorkflow: Workflow<TWorkflow,TInput,TOutput>
     {
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="context"></param>
+        /// <param name="options"></param>
+        /// <returns></returns>
+        public static Task<string> CreateAsync(EternityContext context, WorkflowOptions<TInput> options)
+        {
+            context.GetDerived(typeof(TWorkflow));
+            return context.CreateAsync<TInput, TOutput>(typeof(TWorkflow), options);
+        }
 
         /// <summary>
         /// Creates a new workflow, which will be executed immediately
@@ -24,57 +49,14 @@ namespace NeuroSpeech.Eternity
         /// <param name="context">Eternity Context</param>
         /// <param name="input">Input</param>
         /// <returns></returns>
-        public static Task<string> CreateAsync(EternityContext context, TInput input)
+        public static Task<string> CreateAsync(EternityContext context, TInput input, string? description = null)
         {
             // this will force verification..
             context.GetDerived(typeof(TWorkflow));
-            return context.CreateAsync<TInput, TOutput>(typeof(TWorkflow), input);
-        }
-
-        /// <summary>
-        /// Creates a new workflow, which will be executed immediately with given ID, 
-        /// ID must be unique, if workflow with same ID exists, it will throw an error
-        /// </summary>
-        /// <param name="context">Eternity Context</param>
-        /// <param name="id">Workflow ID</param>
-        /// <param name="input">Input</param>
-        /// <returns></returns>
-        public static Task<string> CreateAsync(EternityContext context, string id, TInput input)
-        {
-            // this will force verification..
-            context.GetDerived(typeof(TWorkflow));
-            return context.CreateAsync<TInput, TOutput>(typeof(TWorkflow), input, id);
-        }
-
-
-        /// <summary>
-        /// Creates a new workflow, which will be at specified time
-        /// </summary>
-        /// <param name="context">Eternity Context</param>
-        /// <param name="input">Input</param>
-        /// <param name="at">Start on this time</param>
-        /// <returns></returns>
-        public static Task<string> CreateAtAsync(EternityContext context, TInput input, DateTimeOffset at)
-        {
-            // this will force verification..
-            context.GetDerived(typeof(TWorkflow));
-            return context.CreateAtAsync<TInput, TOutput>(typeof(TWorkflow), input, at);
-        }
-
-        /// <summary>
-        /// Creates a new workflow, which will be at specified time with given ID, 
-        /// ID must be unique, if workflow with same ID exists, it will throw an error
-        /// </summary>
-        /// <param name="context">Eternity Context</param>
-        /// <param name="id">Workflow ID</param>
-        /// <param name="input">Input</param>
-        /// <param name="at">Start on this time</param>
-        /// <returns></returns>
-        public static Task<string> CreateAtAsync(EternityContext context, string id, TInput input, DateTimeOffset at)
-        {
-            // this will force verification..
-            context.GetDerived(typeof(TWorkflow));
-            return context.CreateAtAsync<TInput, TOutput>(typeof(TWorkflow), input, at, id);
+            return context.CreateAsync<TInput, TOutput>(typeof(TWorkflow), new WorkflowOptions<TInput> { 
+                Input = input,
+                Description = description
+            });
         }
 
         /// <summary>
