@@ -13,22 +13,6 @@ using System.Threading.Tasks;
 namespace NeuroSpeech.Eternity
 {
 
-    public class EternityClock : IEternityClock
-    {
-        public DateTimeOffset UtcNow => DateTimeOffset.UtcNow;
-    }
-
-    public interface IEternityServiceScope: IDisposable
-    {
-        IServiceProvider ServiceProvider {
-            get;
-        }
-    }
-
-    public interface IServiceScopeFactory{
-        IEternityServiceScope CreateScope(IServiceProvider services);
-    }
-
     public class EternityContext
     {
         private readonly IEternityStorage storage;
@@ -98,6 +82,8 @@ namespace NeuroSpeech.Eternity
             }
         }
 
+        public event EventHandler? NewWorkflowCreated;
+
         internal async Task<string> CreateAsync<TInput, TOutput>(Type type, WorkflowOptions<TInput> input)
         {
             input.ID ??= Guid.NewGuid().ToString("N");
@@ -106,6 +92,7 @@ namespace NeuroSpeech.Eternity
             var key = WorkflowStep.Workflow(input.ID, type, input.Input!, input.Description, eta, utcNow, input.ParentID, options);
             key = await storage.InsertWorkflowAsync(key);
             await storage.QueueWorkflowAsync(new WorkflowQueueItem { ID = key.ID!, ETA = utcNow });
+            NewWorkflowCreated?.Invoke(this, EventArgs.Empty);
             Trigger();
             return input.ID;
         }
