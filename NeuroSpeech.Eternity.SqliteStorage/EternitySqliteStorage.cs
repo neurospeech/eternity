@@ -48,6 +48,13 @@ namespace NeuroSpeech.Eternity
             return await db.FromSqlAsync<WorkflowStep>(q, true);
         }
 
+        public async Task<List<ActivityStep>> EnumerateActivitiesAsync(string workflowID)
+        {
+            using var db = await Open();
+            var q = TemplateQuery.New($"SELECT * FROM Activities WHERE ID={workflowID} ORDER BY SequenceID");
+            return await db.FromSqlAsync<ActivityStep>(q, true);
+        }
+
         public async Task<IEternityLock> AcquireLockAsync(string id, long sequenceId)
         {
             while (true)
