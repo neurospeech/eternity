@@ -192,7 +192,7 @@ namespace NeuroSpeech.Eternity
                 LastUpdated = now
             };
             step.Key = uniqueParameters
-                ? $"{step.ID}-{step.ActivityType}-{step.Method}-{step.Parameters}"
+                ? $"{step.ID}-{step.ActivityType}-{step.Method}:{step.Parameters}"
                 : $"{step.ID}-{step.ActivityType}-{step.Method}-{step.DateCreated.Ticks}:{step.Parameters}";
             // step.ParametersHash = Convert.ToBase64String(sha.ComputeHash( System.Text.Encoding.UTF8.GetBytes(step.Parameters)));
             return step;
