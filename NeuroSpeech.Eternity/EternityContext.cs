@@ -354,6 +354,7 @@ namespace NeuroSpeech.Eternity
             bool throwIfNotFound = false)
         {
             using var session = this.logger.BeginLogSession();
+            session?.LogError($"Workflow {id} Raising Event {eventName}");
             value ??= "";
             var key = await storage.GetEventAsync(id, eventName);
             if (key == null)
