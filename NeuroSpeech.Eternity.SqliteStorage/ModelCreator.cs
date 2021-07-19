@@ -82,6 +82,8 @@ namespace NeuroSpeech.Eternity
         ETA INTEGER
     );
 
+    DELETE FROM ActivityLocks;
+
 ");
             await conn.ExecuteNonQueryAsync(createScript);
         }

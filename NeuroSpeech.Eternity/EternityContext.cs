@@ -153,8 +153,11 @@ namespace NeuroSpeech.Eternity
         private Task<int>? previousTask = null;
 
         public Task<int> ProcessMessagesOnceAsync(int maxParallelWorkflows = 100, CancellationToken cancellationToken = default) {
-            previousTask = InternalProcessMessagesOnceAsync(previousTask, maxParallelWorkflows, cancellationToken);
-            return previousTask;
+            lock (this)
+            {
+                previousTask = InternalProcessMessagesOnceAsync(previousTask, maxParallelWorkflows, cancellationToken);
+                return previousTask;
+            }
         }
 
         private async Task<int> InternalProcessMessagesOnceAsync(
