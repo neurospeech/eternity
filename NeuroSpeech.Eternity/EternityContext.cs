@@ -523,7 +523,7 @@ namespace NeuroSpeech.Eternity
 
             var sequenceId = task.SequenceID;
 
-            var type = workflow.GetType().BaseType;
+            var type = this.EmitAvailable ? workflow.GetType().BaseType : workflow.GetType();
 
             // we are supposed to run this activity now...
             // acquire execution lock...
