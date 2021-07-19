@@ -87,6 +87,7 @@ DELETE FROM ActivityEvents WHERE ID={id};
         {
             using var db = await Open(); var sids = await db.FromSqlAsync<ActivityStep>(TemplateQuery.New(@$"
 SELECT SequenceID FROM ActivityEvents WHERE ID={id} AND EventName={eventName}
+ORDER BY SequenceID DESC
 "), true);
             return await GetStatusAsync(sids.First());
         }

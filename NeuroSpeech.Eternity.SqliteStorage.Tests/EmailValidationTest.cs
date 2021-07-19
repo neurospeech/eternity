@@ -1,7 +1,9 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NeuroSpeech.Eternity.Mocks;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -93,7 +95,9 @@ namespace NeuroSpeech.Eternity.SqliteStorage.Tests
         [TestMethod]
         public async Task ResendAsync()
         {
-            using var engine = new MockSqliteEngine();
+            using var engine = new MockSqliteEngine((s) => {
+                s.AddSingleton<IEternityLogger, DiagnosticsLogger>();
+            });
 
             var emailService = engine.EmailService;
             var context = engine.Resolve<EternityContext>();
@@ -120,6 +124,10 @@ namespace NeuroSpeech.Eternity.SqliteStorage.Tests
             Assert.AreEqual(2, emailService.Emails.Count);
 
             await context.RaiseEventAsync(id, SignupWorkflow.Verify, code);
+
+            engine.Clock.UtcNow += TimeSpan.FromMinutes(1);
+
+            await context.ProcessMessagesOnceAsync();
 
             engine.Clock.UtcNow += TimeSpan.FromMinutes(1);
 
