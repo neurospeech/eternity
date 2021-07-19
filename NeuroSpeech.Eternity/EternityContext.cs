@@ -354,7 +354,7 @@ namespace NeuroSpeech.Eternity
             bool throwIfNotFound = false)
         {
             using var session = this.logger.BeginLogSession();
-            session?.LogError($"Workflow {id} Raising Event {eventName}");
+            session?.LogInformation($"Workflow {id} Raising Event {eventName}");
             value ??= "";
             var key = await storage.GetEventAsync(id, eventName);
             if (key == null)
@@ -478,7 +478,6 @@ namespace NeuroSpeech.Eternity
             }
             using var session = this.logger?.BeginLogSession();
 
-            session?.LogInformation($"Workflow {ID} Scheduling new activity {methodName}");
             var key = ActivityStep.Activity(uniqueParameters, ID, method, input, after, workflow.CurrentUtc, options);
 
             while (true)
@@ -491,16 +490,15 @@ namespace NeuroSpeech.Eternity
                 {
                     case ActivityStatus.Failed:
                         workflow.SetCurrentTime(task.LastUpdated);
-                        session?.LogInformation($"Workflow {ID} Activity {methodName} failed {task.Error}");
                         throw new ActivityFailedException(task.Error!);
                     case ActivityStatus.Completed:
                         workflow.SetCurrentTime(task.LastUpdated);
-                        session?.LogInformation($"Workflow {ID} Activity {methodName} finished.");
                         if (typeof(TActivityOutput) == typeof(object))
                             return (TActivityOutput)(object)"null";
                         return task.AsResult<TActivityOutput>(options)!;
                 }
 
+                session?.LogInformation($"Workflow {ID} Scheduling new activity {methodName}");
                 var diff = task.ETA - clock.UtcNow;
                 if(diff.TotalSeconds > 15)
                 {
