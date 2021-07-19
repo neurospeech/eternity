@@ -52,9 +52,13 @@ namespace NeuroSpeech.Eternity
         {
             while (true)
             {
-                using var db = await Open(); 
+                using var db = await Open();
+                var now = clock.UtcNow;
+                var locked = now.AddMinutes(1);
                 try {
-                    var q = TemplateQuery.New(@$"INSERT INTO ActivityLocks(SequenceID) VALUES ({sequenceId});");
+                    var q = TemplateQuery.New(@$"
+DELETE FROM ActivityLocks WHERE SequenceID={sequenceId} AND ETA<={now.UtcTicks};
+INSERT INTO ActivityLocks(SequenceID, ETA) VALUES ({sequenceId}, {locked.UtcTicks});");
                     await db.ExecuteNonQueryAsync(q);
                     return new ActivityLock { SequenceID = sequenceId };
                 }

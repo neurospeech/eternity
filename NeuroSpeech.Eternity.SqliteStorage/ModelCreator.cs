@@ -78,7 +78,8 @@ namespace NeuroSpeech.Eternity
     ON QueueTokens (ETA);
 
     CREATE TABLE IF NOT EXISTS ActivityLocks (
-        SequenceID INTEGER PRIMARY KEY
+        SequenceID INTEGER PRIMARY KEY,
+        ETA INTEGER
     );
 
 ");
