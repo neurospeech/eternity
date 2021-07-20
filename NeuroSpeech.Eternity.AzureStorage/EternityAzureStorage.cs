@@ -107,6 +107,9 @@ namespace NeuroSpeech.Eternity
             {
                 keyHash = e.GetString("StepRowKey");
             }
+            // this is the case when History may be deleted
+            if (keyHash == null)
+                return null;
             filter = Azure.Data.Tables.TableClient.CreateQueryFilter($"PartitionKey eq {id} and RowKey eq {keyHash}");
             await foreach (var e in Activities.QueryAsync<TableEntity>(filter))
             {
