@@ -11,8 +11,8 @@ namespace NeuroSpeech.Eternity
     public class WorkflowScheduler<T> : IDisposable
     {
         private readonly CancellationToken cancellationToken;
-        private Dictionary<string, Task> pendingTasks
-            = new Dictionary<string, Task>();
+        private ConcurrentDictionary<string, Task> pendingTasks
+            = new ConcurrentDictionary<string, Task>();
 
         public WorkflowScheduler(int n = 0, CancellationToken cancellationToken = default)
         {
@@ -30,10 +30,10 @@ namespace NeuroSpeech.Eternity
             T item, 
             Func<T, CancellationToken, Task> runWorkflowAsync)
         {
-            lock (pendingTasks) {
-                pendingTasks.TryGetValue(id, out var t);
-                return pendingTasks[id] = Task.Run(() => RunTask(id, item, runWorkflowAsync, t));
-            }
+            return pendingTasks.AddOrUpdate(id, 
+                k => RunTask(k, item, runWorkflowAsync, null), 
+                (k, old) => RunTask(k, item, runWorkflowAsync, old));
+
         }
 
         private async Task RunTask(string id, T item, Func<T, CancellationToken, Task> runWorkflowAsync, Task? previous)
@@ -43,10 +43,7 @@ namespace NeuroSpeech.Eternity
                 await previous;
             }
             await runWorkflowAsync(item, cancellationToken);
-            lock (pendingTasks)
-            {
-                pendingTasks.Remove(id);
-            }
+            pendingTasks.TryRemove(id, out var none);
         }
     }
 
