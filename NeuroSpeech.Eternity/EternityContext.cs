@@ -127,9 +127,9 @@ namespace NeuroSpeech.Eternity
             int maxParallelWorkflows = 100, 
             CancellationToken cancellationToken = default)
         {
-            var ws = new WorkflowScheduler<WorkflowQueueItem>(maxParallelWorkflows, cancellationToken);
             while(!cancellationToken.IsCancellationRequested)
             {
+                using var ws = new WorkflowScheduler<WorkflowQueueItem>(maxParallelWorkflows, cancellationToken);
                 var items = await storage.GetScheduledActivitiesAsync();
                 var tasks = new Task[items.Length];
                 for (int i = 0; i < items.Length; i++)

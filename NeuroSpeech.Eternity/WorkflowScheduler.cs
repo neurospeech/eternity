@@ -8,14 +8,65 @@ using System.Threading.Tasks;
 
 namespace NeuroSpeech.Eternity
 {
+
+    public class TaskDispatcher
+    {
+        public Task Add(Func<Task> task)
+        {
+            var s = new System.Threading.Tasks.TaskCompletionSource<int>();
+            tasks.Enqueue(async () =>
+            {
+                await task();
+                s.SetResult(1);
+            });
+            trigger?.Cancel();
+            return s.Task;
+        }
+
+        public int Count => tasks.Count;
+
+        public TaskDispatcher()
+        {
+            Task.Run(RunAsync);
+        }
+
+        private CancellationTokenSource? trigger;
+        private ConcurrentQueue<Func<Task>> tasks = new ConcurrentQueue<Func<Task>>();
+
+        private async Task RunAsync()
+        {
+            while (true)
+            {
+                try
+                {
+                    var c = trigger = new CancellationTokenSource();
+                    await Task.Delay(60000, c.Token);
+                }
+                catch (TaskCanceledException)
+                {
+
+                }
+
+                while(tasks.TryDequeue(out var f))
+                {
+                    await f();
+                }
+            }
+        }
+    }
+
     public class WorkflowScheduler<T> : IDisposable
     {
+        private readonly int maxWorkers;
         private readonly CancellationToken cancellationToken;
-        private ConcurrentDictionary<string, Task> pendingTasks
-            = new ConcurrentDictionary<string, Task>();
+        private ConcurrentDictionary<string, TaskDispatcher> pendingTasks
+            = new ConcurrentDictionary<string, TaskDispatcher>();
 
-        public WorkflowScheduler(int n = 0, CancellationToken cancellationToken = default)
+        private static List<TaskDispatcher> dispatchers = new List<TaskDispatcher>();
+
+        public WorkflowScheduler(int maxWorkers = 0, CancellationToken cancellationToken = default)
         {
+            this.maxWorkers = maxWorkers;
             this.cancellationToken = cancellationToken;
         }
 
@@ -23,27 +74,34 @@ namespace NeuroSpeech.Eternity
 
         public void Dispose()
         {
-            
+            pendingTasks.Clear();
         }
 
         internal Task Queue(string id, 
             T item, 
             Func<T, CancellationToken, Task> runWorkflowAsync)
         {
-            return pendingTasks.AddOrUpdate(id, 
-                k => RunTask(k, item, runWorkflowAsync, null), 
-                (k, old) => RunTask(k, item, runWorkflowAsync, old));
-
-        }
-
-        private async Task RunTask(string id, T item, Func<T, CancellationToken, Task> runWorkflowAsync, Task? previous)
-        {
-            if(previous != null)
+            var q = pendingTasks.GetOrAdd(id, k => { 
+                lock(pendingTasks)
+                {
+                    return pendingTasks.GetOrAdd(k, i =>
+                    {
+                        TaskDispatcher d = dispatchers.FirstOrDefault(x => x.Count == 0);
+                        if(d == null && dispatchers.Count < maxWorkers)
+                        {
+                            d = new TaskDispatcher();
+                            dispatchers.Add(d);
+                            return d;
+                        }
+                        var f = dispatchers.OrderBy(x => x.Count == 0).First();
+                        return f;
+                    });
+                }
+            });
+            return q.Add(async () =>
             {
-                await previous;
-            }
-            await runWorkflowAsync(item, cancellationToken);
-            pendingTasks.TryRemove(id, out var none);
+                await runWorkflowAsync(item, CancellationToken.None);
+            });
         }
     }
 
