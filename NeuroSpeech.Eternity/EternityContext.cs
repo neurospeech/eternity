@@ -404,7 +404,7 @@ namespace NeuroSpeech.Eternity
                     case ActivityStatus.Completed:
                         workflow.SetCurrentTime(status.LastUpdated);
                         var er = status.AsResult<EventResult>(options)!;
-                        session?.LogInformation($"Workflow {workflow.ID} waiting for an external event finished");
+                        session?.LogInformation($"Workflow {workflow.ID} waiting for an external event finished {status.Result}");
                         return (er.EventName, er.Value);
                     case ActivityStatus.Failed:
                         workflow.SetCurrentTime(status.LastUpdated);

@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace NeuroSpeech.Eternity.SqliteStorage.Tests
@@ -17,9 +18,11 @@ namespace NeuroSpeech.Eternity.SqliteStorage.Tests
         {
         }
 
+        private static long dbID = 1;
+
         protected override EternitySqliteStorage CreateStorage(MockClock clock)
         {
-            this.filePath = System.IO.Path.GetTempFileName();
+            this.filePath = $"{System.IO.Path.GetTempFileName()}-{Interlocked.Increment(ref dbID)}.db3";
             var cb = new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder();
             cb.DataSource = filePath;
             return new EternitySqliteStorage(cb.ToString(), clock, TimeSpan.FromMilliseconds(100));

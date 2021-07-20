@@ -8,123 +8,150 @@ using System.Threading.Tasks;
 
 namespace NeuroSpeech.Eternity
 {
-    public class WorkflowScheduler<T>: IDisposable
+    public class WorkflowScheduler<T> : IDisposable
     {
-        class JobItem
-        {
-            public readonly string Key;
-            public readonly T Arg;
-            public readonly Func<T, CancellationToken, Task> Task;
-            public readonly ConcurrentQueue<JobItem> Queue;
-            private readonly TaskCompletionSource<int> CompletionSource;
-            public readonly Task Completion;
-
-            public JobItem(string key, T arg, Func<T, CancellationToken, Task> task, ConcurrentQueue<JobItem> queue)
-            {
-                this.Key = key;
-                this.Arg = arg;
-                this.Task = task;
-                this.Queue = queue;
-                this.CompletionSource = new TaskCompletionSource<int>();
-                this.Completion = this.CompletionSource.Task;
-            }
-
-            public void Finish(Exception? ex = null)
-            {
-                if (ex == null)
-                {
-                    CompletionSource.TrySetResult(0);
-                } else
-                {
-                    CompletionSource.TrySetException(ex);
-                }
-            }
-        }
-
-        private ConcurrentDictionary<string, ConcurrentQueue<JobItem>> jobs 
-            = new ConcurrentDictionary<string, ConcurrentQueue<JobItem>>();
-
-        private List<BlockingCollection<ConcurrentQueue<JobItem>>> Pool = new List<BlockingCollection<ConcurrentQueue<JobItem>>>();
-        private readonly int maxThreads;
         private readonly CancellationToken cancellationToken;
+        private Dictionary<string, Task> pendingTasks
+            = new Dictionary<string, Task>();
 
-        public WorkflowScheduler(int maxThreads, CancellationToken cancellationToken)
+        public WorkflowScheduler(int n = 0, CancellationToken cancellationToken = default)
         {
-            cancellationToken.Register(() => {
-                this.Dispose();
-            });
-            this.maxThreads = maxThreads;
             this.cancellationToken = cancellationToken;
         }
 
-        private async Task RunAsync(BlockingCollection<ConcurrentQueue<JobItem>> tasks)
-        {
-            try
-            {
-                foreach (var item in tasks.GetConsumingEnumerable(cancellationToken))
-                {
-                    if (item.TryDequeue(out var qi))
-                    {
-                        try
-                        {
-                            await qi.Task(qi.Arg, cancellationToken);
-                            qi.Finish();
-                        }
-                        catch (Exception ex)
-                        {
-                            qi.Finish(ex);
-                        }
-                        if (item.IsEmpty)
-                        {
-                            jobs.TryRemove(qi.Key, out var _);
-                        }
-                    }
-                }
-            }catch (Exception ex){
-                System.Diagnostics.Debug.WriteLine(ex);
-            }
-        }
 
-        public Task Queue(string key, T arg, Func<T, CancellationToken, Task> item) {
-            var q = jobs.GetOrAdd(key, (k1) =>
-            {
-                lock (jobs)
-                {
-                    return jobs.GetOrAdd(k1, k2 =>
-                    {
-                        return new ConcurrentQueue<JobItem>();
-                    });
-                }
-            });
-            var ji = new JobItem(key, arg, item, q);
-            q.Enqueue(ji);
-
-            var first = Pool.FirstOrDefault(x => x.Count == 0);
-            if(first == null)
-            {
-                if (Pool.Count < maxThreads)
-                {
-                    var tasks = new BlockingCollection<ConcurrentQueue<JobItem>>();
-                    Pool.Add(tasks);
-                    Task.Factory.StartNew(() => RunAsync(tasks), TaskCreationOptions.LongRunning);
-                    first = tasks;
-                }
-                else
-                {
-                    first = Pool.OrderBy(x => x.Count).First();
-                }
-            }
-            first.Add(q);
-            return ji.Completion;
-        }
 
         public void Dispose()
         {
-            foreach (var item in Pool)
-            {
-                item.CompleteAdding();
+            
+        }
+
+        internal Task Queue(string id, 
+            T item, 
+            Func<T, CancellationToken, Task> runWorkflowAsync)
+        {
+            lock (pendingTasks) {
+                pendingTasks.TryGetValue(id, out var t);
+                return Task.Run(() => RunTask(id, item, runWorkflowAsync, t));
             }
-            Pool.Clear();
+        }
+
+        private async Task RunTask(string id, T item, Func<T, CancellationToken, Task> runWorkflowAsync, Task? previous)
+        {
+            if(previous != null)
+            {
+                await previous;
+            }
+            await runWorkflowAsync(item, cancellationToken);
+            lock (pendingTasks)
+            {
+                pendingTasks.Remove(id);
+            }
         }
     }
+
+
+    //public class WorkflowScheduler<T>: IDisposable
+    //{
+    //    class JobItem
+    //    {
+    //        public readonly string Key;
+    //        public readonly T Arg;
+    //        public readonly Func<T, CancellationToken, Task> Task;
+    //        private readonly TaskCompletionSource<int> CompletionSource;
+    //        public readonly Task Completion;
+
+    //        public JobItem(string key, T arg, Func<T, CancellationToken, Task> task)
+    //        {
+    //            this.Key = key;
+    //            this.Arg = arg;
+    //            this.Task = task;
+    //            this.CompletionSource = new TaskCompletionSource<int>();
+    //            this.Completion = this.CompletionSource.Task;
+    //        }
+
+    //        public void Finish(Exception? ex = null)
+    //        {
+    //            if (ex == null)
+    //            {
+    //                CompletionSource.TrySetResult(0);
+    //            } else
+    //            {
+    //                CompletionSource.TrySetException(ex);
+    //            }
+    //        }
+    //    }
+
+    //    private static List<SingleThreadTaskScheduler<T>> schedulers = new List<SingleThreadTaskScheduler<T>>();
+    //    private readonly int maxThreads;
+    //    private readonly CancellationToken cancellationToken;
+    //    private ConcurrentDictionary<string, SingleThreadTaskScheduler<T>> jobs 
+    //        = new ConcurrentDictionary<string, SingleThreadTaskScheduler<T>>();
+
+    //    public WorkflowScheduler(int maxThreads, CancellationToken cancellationToken)
+    //    {
+    //        cancellationToken.Register(() => {
+    //            this.Dispose();
+    //        });
+    //        this.maxThreads = maxThreads;
+    //        this.cancellationToken = cancellationToken;
+    //    }
+
+    //    public Task Queue(string key, T arg, Func<T, CancellationToken, Task> item) {
+    //        var q = jobs.GetOrAdd(key, (k1) =>
+    //        {
+    //            lock (jobs)
+    //            {
+    //                return jobs.GetOrAdd(k1, k2 =>
+    //                {
+    //                    lock (schedulers)
+    //                    {
+    //                        return TaskScheduler();
+    //                    }
+    //                });
+    //            }
+    //        });
+
+    //        q.Factory.StartNew()
+
+    //        var ji = new JobItem(key, arg, item, q);
+    //        q.Enqueue(ji);
+
+    //        var first = Pool.FirstOrDefault(x => x.Count == 0);
+    //        if(first == null)
+    //        {
+    //            if (Pool.Count < maxThreads)
+    //            {
+    //                var tasks = new BlockingCollection<ConcurrentQueue<JobItem>>();
+    //                Pool.Add(tasks);
+    //                Task.Factory.StartNew(() => RunAsync(tasks), TaskCreationOptions.LongRunning);
+    //                first = tasks;
+    //            }
+    //            else
+    //            {
+    //                first = Pool.OrderBy(x => x.Count).First();
+    //            }
+    //        }
+    //        first.Add(q);
+    //        return ji.Completion;
+    //    }
+
+    //    private static SingleThreadTaskScheduler TaskScheduler()
+    //    {
+    //        lock (schedulers)
+    //        {
+    //            var first = schedulers.OrderBy(x => x.Count).FirstOrDefault();
+    //            if(first == null || (first.Count > 0 && schedulers.Count < 10))
+    //            {
+    //                first = new SingleThreadTaskScheduler();
+    //                schedulers.Add(first);
+    //            }
+    //            return first;
+    //        }
+    //    }
+
+    //    public void Dispose()
+    //    {
+    //    }
+    //}
 }
