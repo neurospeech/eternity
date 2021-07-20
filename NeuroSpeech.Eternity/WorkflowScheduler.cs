@@ -17,7 +17,7 @@ namespace NeuroSpeech.Eternity
             tasks.Enqueue(async () =>
             {
                 await task();
-                s.SetResult(1);
+                s.TrySetResult(1);
             });
             trigger?.Cancel();
             return s.Task;
@@ -37,20 +37,20 @@ namespace NeuroSpeech.Eternity
         {
             while (true)
             {
+                while(tasks.TryDequeue(out var f))
+                {
+                    await f();
+                }
                 try
                 {
                     var c = trigger = new CancellationTokenSource();
-                    await Task.Delay(60000, c.Token);
+                    await Task.Delay(1000, c.Token);
                 }
                 catch (TaskCanceledException)
                 {
 
                 }
 
-                while(tasks.TryDequeue(out var f))
-                {
-                    await f();
-                }
             }
         }
     }
@@ -64,7 +64,7 @@ namespace NeuroSpeech.Eternity
 
         private static List<TaskDispatcher> dispatchers = new List<TaskDispatcher>();
 
-        public WorkflowScheduler(int maxWorkers = 0, CancellationToken cancellationToken = default)
+        public WorkflowScheduler(int maxWorkers = 10, CancellationToken cancellationToken = default)
         {
             this.maxWorkers = maxWorkers;
             this.cancellationToken = cancellationToken;
@@ -86,22 +86,22 @@ namespace NeuroSpeech.Eternity
                 {
                     return pendingTasks.GetOrAdd(k, i =>
                     {
-                        TaskDispatcher d = dispatchers.FirstOrDefault(x => x.Count == 0);
-                        if(d == null && dispatchers.Count < maxWorkers)
+                        lock (dispatchers)
                         {
-                            d = new TaskDispatcher();
-                            dispatchers.Add(d);
-                            return d;
+                            TaskDispatcher d = dispatchers.FirstOrDefault(x => x.Count == 0);
+                            if (d == null || dispatchers.Count < maxWorkers)
+                            {
+                                d = new TaskDispatcher();
+                                dispatchers.Add(d);
+                                return d;
+                            }
+                            var f = dispatchers.OrderBy(x => x.Count == 0).First();
+                            return f;
                         }
-                        var f = dispatchers.OrderBy(x => x.Count == 0).First();
-                        return f;
                     });
                 }
             });
-            return q.Add(async () =>
-            {
-                await runWorkflowAsync(item, CancellationToken.None);
-            });
+            return q.Add(() => runWorkflowAsync(item, CancellationToken.None));
         }
     }
 
