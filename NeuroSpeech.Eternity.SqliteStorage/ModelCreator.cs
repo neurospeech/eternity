@@ -86,6 +86,8 @@ namespace NeuroSpeech.Eternity
 
 ");
             await conn.ExecuteNonQueryAsync(createScript);
+
+            await conn.ExecuteNonQueryAsync(TemplateQuery.New($"PRAGMA journal_mode = 'wal'"));
         }
     }
 

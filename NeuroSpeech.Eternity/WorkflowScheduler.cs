@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace NeuroSpeech.Eternity
 {
-    public class WorkflowScheduler<T>
+    public class WorkflowScheduler<T>: IDisposable
     {
         class JobItem
         {
@@ -51,10 +51,7 @@ namespace NeuroSpeech.Eternity
         public WorkflowScheduler(int maxThreads, CancellationToken cancellationToken)
         {
             cancellationToken.Register(() => {
-                foreach (var item in Pool)
-                {
-                    item.CompleteAdding();
-                }
+                this.Dispose();
             });
             this.maxThreads = maxThreads;
             this.cancellationToken = cancellationToken;
@@ -119,5 +116,13 @@ namespace NeuroSpeech.Eternity
             return ji.Completion;
         }
 
+        public void Dispose()
+        {
+            foreach (var item in Pool)
+            {
+                item.CompleteAdding();
+            }
+            Pool.Clear();
+        }
     }
 }
