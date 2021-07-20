@@ -80,7 +80,9 @@ namespace NeuroSpeech.Eternity
                         }
                     }
                 }
-            }catch (TaskCanceledException) { }
+            }catch (Exception ex){
+                System.Diagnostics.Debug.WriteLine(ex);
+            }
         }
 
         public Task Queue(string key, T arg, Func<T, CancellationToken, Task> item) {
