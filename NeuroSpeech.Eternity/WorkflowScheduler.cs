@@ -32,7 +32,7 @@ namespace NeuroSpeech.Eternity
         {
             lock (pendingTasks) {
                 pendingTasks.TryGetValue(id, out var t);
-                return Task.Run(() => RunTask(id, item, runWorkflowAsync, t));
+                return pendingTasks[id] = Task.Run(() => RunTask(id, item, runWorkflowAsync, t));
             }
         }
 
