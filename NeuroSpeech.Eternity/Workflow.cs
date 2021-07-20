@@ -277,8 +277,33 @@ namespace NeuroSpeech.Eternity
 
         async Task<object> IWorkflow.RunAsync(object input)
         {
-            var result = await RunAsync((TInput)input);
+            object? result = null;
+            bool suspended = false;
+            try
+            {
+                result = await RunAsync((TInput)input);
+            } 
+            catch(ActivitySuspendedException)
+            {
+                suspended = true;
+                throw;
+            }catch(Exception)
+            {
+                throw;
+            }
+            finally
+            {
+                if(!suspended)
+                {
+                    await RunFinallyAsync();
+                }
+            }
             return result!;
+        }
+
+        protected virtual Task RunFinallyAsync()
+        {
+            return Task.CompletedTask;
         }
 
         /// <summary>
