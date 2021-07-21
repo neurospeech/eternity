@@ -13,29 +13,44 @@ namespace NeuroSpeech.Eternity
     {
         public void Add(Func<Task> task)
         {
-            tasks.Add(task);
+            tasks.Enqueue(task);
+            waiting?.Cancel();
         }
 
         public int Count => tasks.Count;
 
         public TaskDispatcher()
         {
-            Task.Factory.StartNew(RunSync, TaskCreationOptions.LongRunning);
+            Task.Run(RunSync);
         }
 
-        private BlockingCollection<Func<Task>> tasks = new BlockingCollection<Func<Task>>();
+        private ConcurrentQueue<Func<Task>> tasks = new ConcurrentQueue<Func<Task>>();
+        private CancellationTokenSource disposed = new CancellationTokenSource();
+        private CancellationTokenSource? waiting = null;
 
         private async Task RunSync()
         {
-            foreach(var task in tasks.GetConsumingEnumerable())
+            while(!disposed.IsCancellationRequested)
             {
-                await task();
+                while(tasks.TryDequeue(out var task))
+                {
+                    await task();
+                }
+
+                try {
+                    var c = new CancellationTokenSource();
+                    waiting = c;
+                    await Task.Delay(15000, c.Token);
+                } catch (TaskCanceledException)
+                {
+
+                }
             }
         }
 
         public void Dispose()
         {
-            tasks.CompleteAdding();
+            disposed.Cancel();
         }
     }
 
