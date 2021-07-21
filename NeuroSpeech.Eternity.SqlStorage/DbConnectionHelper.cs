@@ -453,11 +453,37 @@ namespace NeuroSpeech.Eternity
             }
             if (propertyType.IsEnum)
             {
-                if(valueType == typeof(string))
+                switch (Type.GetTypeCode(valueType))
                 {
-                    property.SetValue(target, Enum.Parse(propertyType, (string)value));
-                    return;
+                    case TypeCode.String:
+                        property.SetValue(target, Enum.Parse(propertyType, (string)value, true));
+                        return;
+                    case TypeCode.UInt64:
+                        property.SetValue(target, Enum.ToObject(propertyType, (ulong)value));
+                        break;
+                    case TypeCode.UInt32:
+                        property.SetValue(target, Enum.ToObject(propertyType, (uint)value));
+                        break;
+                    case TypeCode.UInt16:
+                        property.SetValue(target, Enum.ToObject(propertyType, (ushort)value));
+                        break;
+                    case TypeCode.Int64:
+                        property.SetValue(target, Enum.ToObject(propertyType, (long)value));
+                        break;
+                    case TypeCode.Int32:
+                        property.SetValue(target, Enum.ToObject(propertyType, (int)value));
+                        break;
+                    case TypeCode.Int16:
+                        property.SetValue(target, Enum.ToObject(propertyType, (short)value));
+                        break;
+                    case TypeCode.Byte:
+                        property.SetValue(target, Enum.ToObject(propertyType, (byte)value));
+                        break;
+                    case TypeCode.SByte:
+                        property.SetValue(target, Enum.ToObject(propertyType, (sbyte)value));
+                        break;
                 }
+                throw new InvalidOperationException();
             }
             if (propertyType == typeof(DateTimeOffset))
             {
