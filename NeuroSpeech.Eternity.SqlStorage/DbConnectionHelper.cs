@@ -453,7 +453,7 @@ namespace NeuroSpeech.Eternity
             }
             if (propertyType.IsEnum)
             {
-                switch (Type.GetTypeCode(valueType))
+                switch (tc)
                 {
                     case TypeCode.String:
                         property.SetValue(target, Enum.Parse(propertyType, (string)value, true));
