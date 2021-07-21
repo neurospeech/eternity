@@ -36,11 +36,11 @@ namespace NeuroSpeech.Eternity
                 {
                     await task();
                 }
-
-                try {
-                    var c = new CancellationTokenSource();
-                    waiting = c;
-                    await Task.Delay(15000, c.Token);
+                var c = new CancellationTokenSource();
+                waiting = c;
+                try
+                {
+                    await Task.Delay(5000, c.Token);
                 } catch (TaskCanceledException)
                 {
 
