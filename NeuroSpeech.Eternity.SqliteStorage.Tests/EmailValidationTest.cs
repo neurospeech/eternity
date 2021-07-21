@@ -133,6 +133,8 @@ namespace NeuroSpeech.Eternity.SqliteStorage.Tests
 
             await context.ProcessMessagesOnceAsync();
 
+            await context.ProcessMessagesOnceAsync();
+
             var status = await engine.Storage.GetWorkflowAsync(id);
 
             Assert.AreEqual(status.Status, ActivityStatus.Completed);

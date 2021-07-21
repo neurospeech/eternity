@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 namespace NeuroSpeech.Eternity
 {
 
-    public class TaskDispatcher
+    public class TaskDispatcher: IDisposable
     {
         public void Add(Func<Task> task)
         {
@@ -25,12 +25,17 @@ namespace NeuroSpeech.Eternity
 
         private BlockingCollection<Func<Task>> tasks = new BlockingCollection<Func<Task>>();
 
-        private void RunSync()
+        private async Task RunSync()
         {
             foreach(var task in tasks.GetConsumingEnumerable())
             {
-                Task.Run(task);
+                await task();
             }
+        }
+
+        public void Dispose()
+        {
+            tasks.CompleteAdding();
         }
     }
 
@@ -41,7 +46,7 @@ namespace NeuroSpeech.Eternity
         private ConcurrentDictionary<string, TaskDispatcher> pendingTasks
             = new ConcurrentDictionary<string, TaskDispatcher>();
 
-        private static List<TaskDispatcher> dispatchers = new List<TaskDispatcher>();
+        private List<TaskDispatcher> dispatchers = new List<TaskDispatcher>();
 
         public WorkflowScheduler(int maxWorkers = 10, CancellationToken cancellationToken = default)
         {
@@ -54,6 +59,10 @@ namespace NeuroSpeech.Eternity
         public void Dispose()
         {
             pendingTasks.Clear();
+            foreach(var d in dispatchers)
+            {
+                d.Dispose();
+            }
         }
 
         internal Task Queue(string id, 
@@ -74,7 +83,7 @@ namespace NeuroSpeech.Eternity
                                 dispatchers.Add(d);
                                 return d;
                             }
-                            var f = dispatchers.OrderBy(x => x.Count == 0).First();
+                            var f = dispatchers.OrderBy(x => x.Count).First();
                             return f;
                         }
                     });

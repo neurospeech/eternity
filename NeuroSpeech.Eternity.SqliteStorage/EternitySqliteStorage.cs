@@ -257,6 +257,7 @@ SELECT last_insert_rowid();");
                 var eid = long.Parse(existing);
                 await db.ExecuteNonQueryAsync(TemplateQuery.New($@"DELETE FROM QueueTokens WHERE Token={eid}"));
             }
+            var nlID = Interlocked.Increment(ref lockID);
             var q = TemplateQuery.New(@$"
 INSERT INTO QueueTokens(ID,ETA,Command,ETALocked,CID)
 VALUES (
@@ -264,7 +265,7 @@ VALUES (
     {item.ETA.UtcTicks},
     {item.Command},
     {0},
-    {0}
+    {nlID}
 );
 SELECT last_insert_rowid();");
             var nextID = await db.ExecuteScalarAsync(q);
