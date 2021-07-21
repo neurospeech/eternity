@@ -11,46 +11,25 @@ namespace NeuroSpeech.Eternity
 
     public class TaskDispatcher
     {
-        public Task Add(Func<Task> task)
+        public void Add(Func<Task> task)
         {
-            var s = new System.Threading.Tasks.TaskCompletionSource<int>();
-            tasks.Enqueue(async () =>
-            {
-                await task();
-                s.TrySetResult(1);
-            });
-            trigger?.Cancel();
-            return s.Task;
+            tasks.Add(task);
         }
 
         public int Count => tasks.Count;
 
         public TaskDispatcher()
         {
-            Task.Run(RunAsync);
+            Task.Factory.StartNew(RunSync, TaskCreationOptions.LongRunning);
         }
 
-        private CancellationTokenSource? trigger;
-        private ConcurrentQueue<Func<Task>> tasks = new ConcurrentQueue<Func<Task>>();
+        private BlockingCollection<Func<Task>> tasks = new BlockingCollection<Func<Task>>();
 
-        private async Task RunAsync()
+        private void RunSync()
         {
-            while (true)
+            foreach(var task in tasks.GetConsumingEnumerable())
             {
-                while(tasks.TryDequeue(out var f))
-                {
-                    await f();
-                }
-                try
-                {
-                    var c = trigger = new CancellationTokenSource();
-                    await Task.Delay(1000, c.Token);
-                }
-                catch (TaskCanceledException)
-                {
-
-                }
-
+                Task.Run(task);
             }
         }
     }
@@ -101,7 +80,13 @@ namespace NeuroSpeech.Eternity
                     });
                 }
             });
-            return q.Add(() => runWorkflowAsync(item, CancellationToken.None));
+            var s = new TaskCompletionSource<int>();
+            q.Add(async () =>
+            {
+                await runWorkflowAsync(item, CancellationToken.None);
+                s.TrySetResult(1);
+            });
+            return s.Task;
         }
     }
 
