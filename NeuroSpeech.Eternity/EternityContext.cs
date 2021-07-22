@@ -540,11 +540,13 @@ namespace NeuroSpeech.Eternity
                 switch (task.Status)
                 {
                     case ActivityStatus.Completed:
+                        workflow.SetCurrentTime(key.LastUpdated);
                         session?.LogInformation($"Wrokflow {workflow.ID} executing activity finished");
                         return;
                     case ActivityStatus.Failed:
+                        workflow.SetCurrentTime(key.LastUpdated);
                         session?.LogInformation($"Wrokflow {workflow.ID} executing activity failed {task.Error}");
-                        return;
+                        throw new ActivityFailedException(key.Error!);
                 }
 
                 using var scope = scopeFactory?.CreateScope(services);
@@ -564,6 +566,7 @@ namespace NeuroSpeech.Eternity
                     key.Result = result;
                     key.Status = ActivityStatus.Completed;
                     key.LastUpdated = clock.UtcNow;
+                    workflow.SetCurrentTime(key.LastUpdated);
                     await storage.UpdateAsync(key);
                     session?.LogInformation($"Wrokflow {workflow.ID} executing activity finished");
                     return;
@@ -575,6 +578,7 @@ namespace NeuroSpeech.Eternity
                     key.Status = ActivityStatus.Failed;
                     key.LastUpdated = clock.UtcNow;
                     await storage.UpdateAsync(key);
+                    workflow.SetCurrentTime(key.LastUpdated);
                     session?.LogInformation($"Wrokflow {workflow.ID} executing activity failed {ex.ToString()}");
                     throw new ActivityFailedException(ex.ToString());
                 } finally
