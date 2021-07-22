@@ -591,17 +591,16 @@ namespace NeuroSpeech.Eternity
             }
         }
 
-        private object?[] BuildParameters(MethodInfo method, string? parameters, IServiceProvider? serviceProvider)
+        private object?[] BuildParameters(MethodInfo method, string[]? parameters, IServiceProvider? serviceProvider)
         {
             var pas = method.GetParameters();
             var result = new object?[pas.Length];
-            var tuple = JsonSerializer.Deserialize<string?[]>(parameters!, options);
             for (int i = 0; i < pas.Length; i++)
             {
                 var pa = pas[i];
                 if(pa.GetCustomAttribute<InjectAttribute>() == null)
                 {
-                    var value = tuple![i];
+                    var value = parameters![i];
                     result[i] = JsonSerializer.Deserialize(value!, pa.ParameterType, options);
                     continue;
                 }

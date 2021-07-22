@@ -100,18 +100,23 @@ namespace NeuroSpeech.Eternity
 
         public string KeyHash => Uri.EscapeDataString(Convert.ToBase64String(sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(Key))));
 
-        public string[]? GetEvents() => JsonSerializer.Deserialize<string[]>(Parameters!);
+        public string[]? GetEvents() => Parameters;
 
-        private string? parameters;
-        internal string? Parameters { get {
+        private string[]? parameters;
+        internal string[]? Parameters { get {
                 if (parameters == null)
                 {
                     if (Key == null)
                         return null;
-                    int index = Key.IndexOf(':');
-                    if (index == -1)
-                        return parameters;
-                    parameters = Key.Substring(index + 1);
+                    var p = JsonSerializer.Deserialize<JsonElement?[]>(Key)!;
+                    var pp = p[4].GetValueOrDefault();
+                    var n = pp.GetArrayLength();
+                    var pa = new string[n];
+                    for (int i = 0; i < n; i++)
+                    {
+                        pa[i] = pp[i]!.GetString()!;
+                    }
+                    parameters = pa;
                 }
                 return parameters;
             }
@@ -142,12 +147,12 @@ namespace NeuroSpeech.Eternity
             {
                 ActivityType = ActivityType.Delay,
                 ID = id,
-                Parameters = JsonSerializer.Serialize(eta.Ticks),
+                Parameters = new string[] { },
                 ETA = eta,
                 DateCreated = now,
                 LastUpdated = now
             };
-            step.Key = $"{step.ID}-{step.ActivityType}-{step.DateCreated.Ticks}:{step.Parameters}";
+            step.SetKey(now.UtcTicks);
             return step;
         }
 
@@ -161,13 +166,13 @@ namespace NeuroSpeech.Eternity
             {
                 ActivityType = ActivityType.Event,
                 ID = id,
-                Parameters = JsonSerializer.Serialize(events),
+                Parameters = events,
                 // step.ParametersHash = Convert.ToBase64String(sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(step.Parameters)));
                 ETA = eta,
                 DateCreated = now,
                 LastUpdated = now
             };
-            step.Key = $"{step.ID}-{step.ActivityType}-{step.DateCreated.Ticks}:{step.Parameters}";
+            step.SetKey(now.UtcTicks);
             return step;
         }
 
@@ -186,14 +191,12 @@ namespace NeuroSpeech.Eternity
                 ActivityType = ActivityType.Activity,
                 ID = id,
                 Method = method.Name,
-                Parameters = JsonSerializer.Serialize(parameters.Select(x => JsonSerializer.Serialize(x, options)), options),
+                Parameters = parameters.Select(x => JsonSerializer.Serialize(x, options)).ToArray(),
                 ETA = eta,
                 DateCreated = now,
                 LastUpdated = now
             };
-            step.Key = uniqueParameters
-                ? $"{step.ID}-{step.ActivityType}-{step.Method}:{step.Parameters}"
-                : $"{step.ID}-{step.ActivityType}-{step.Method}-{step.DateCreated.Ticks}:{step.Parameters}";
+            step.SetKey(uniqueParameters ? 0 : now.UtcTicks);
             // step.ParametersHash = Convert.ToBase64String(sha.ComputeHash( System.Text.Encoding.UTF8.GetBytes(step.Parameters)));
             return step;
         }
@@ -210,13 +213,24 @@ namespace NeuroSpeech.Eternity
             {
                 ID = parentID,
                 ActivityType = ActivityType.Child,
-                Parameters = JsonSerializer.Serialize(parameters, options),
+                Parameters = new string[] { JsonSerializer.Serialize(parameters, options) },
                 ETA = eta,
                 DateCreated = utcNow,
                 LastUpdated = utcNow
             };
-            step.Key = $"{step.ID}-{step.ActivityType}-{step.parameters}";
+            step.SetKey(0);
             return step;
+        }
+
+        private void SetKey(long ticks) {
+            this.Key = JsonSerializer.Serialize(new object?[] { 
+                this.ID,
+                this.ActivityType.ToString(),
+                Method,
+                ticks.ToString(),
+                Parameters
+            });
+            Parameters = null;
         }
     }
 }
