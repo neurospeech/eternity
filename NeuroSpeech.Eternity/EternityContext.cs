@@ -323,6 +323,8 @@ namespace NeuroSpeech.Eternity
                 // this was in the past...
                 status.Status = ActivityStatus.Completed;
                 status.Result = "null";
+                status.LastUpdated = utcNow;
+                await storage.UpdateAsync(status);
                 await storage.UpdateAsync(status);
                 if(status.QueueToken != null)
                 {
@@ -341,7 +343,9 @@ namespace NeuroSpeech.Eternity
 
             status.Status = ActivityStatus.Completed;
             status.Result = "null";
+            status.LastUpdated = clock.UtcNow;
             await storage.UpdateAsync(status);
+            workflow.SetCurrentTime(status.LastUpdated);
             if(status.QueueToken != null)
                 await storage.RemoveQueueAsync(status.QueueToken);
         }
@@ -433,6 +437,7 @@ namespace NeuroSpeech.Eternity
                     status.Result = Serialize(timedout);
                     status.Status = ActivityStatus.Completed;
                     status.LastUpdated = clock.UtcNow;
+                    workflow.SetCurrentTime(status.LastUpdated);
                     await storage.UpdateAsync(status);
                     if(status.QueueToken != null)
                         await storage.RemoveQueueAsync(status.QueueToken);

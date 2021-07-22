@@ -4,8 +4,8 @@ namespace NeuroSpeech.Eternity
 {
 
     /// <summary>
-    /// By default parameters are considered as unique, set uniqueParameters to false to 
-    /// consider current UTC as part of parameters
+    /// By default parameters are not considered as unique, set uniqueParameters to false to 
+    /// consider current UTC as part
     /// </summary>
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = true)]
     public class ActivityAttribute: Attribute
@@ -18,9 +18,9 @@ namespace NeuroSpeech.Eternity
         /// <param name="uniqueParameters">
         /// When set to true, it will append CurrentUtc to unique parameters, instead 
         /// parameters combined as JSON will be used as unique key, irrespective in which
-        /// sequence it is executed. Default is true.
+        /// sequence it is executed. Default is false.
         /// </param>
-        public ActivityAttribute(bool uniqueParameters = true)
+        public ActivityAttribute(bool uniqueParameters = false)
         {
             this.UniqueParameters = uniqueParameters;
         }
