@@ -57,60 +57,47 @@ namespace NeuroSpeech.Eternity
     public class WorkflowScheduler<T> : IDisposable
     {
         private readonly int maxWorkers;
-        private readonly CancellationToken cancellationToken;
-        private ConcurrentDictionary<string, TaskDispatcher> pendingTasks
-            = new ConcurrentDictionary<string, TaskDispatcher>();
-
-        private List<TaskDispatcher> dispatchers = new List<TaskDispatcher>();
+        private readonly CancellationTokenSource cancellationTokenSource;
+        private readonly CancellationTokenRegistration registration;
+        private Dictionary<string, Task> pendingTasks
+            = new Dictionary<string, Task>();
 
         public WorkflowScheduler(int maxWorkers = 10, CancellationToken cancellationToken = default)
         {
             this.maxWorkers = maxWorkers;
-            this.cancellationToken = cancellationToken;
+            this.cancellationTokenSource = new CancellationTokenSource();
+            this.registration = cancellationToken.Register(Dispose);
         }
 
 
 
         public void Dispose()
         {
-            pendingTasks.Clear();
-            foreach(var d in dispatchers)
-            {
-                d.Dispose();
-            }
+            if (!cancellationTokenSource.IsCancellationRequested)
+                cancellationTokenSource.Cancel();
+            cancellationTokenSource.Dispose();
+            registration.Dispose();
         }
 
         internal Task Queue(string id, 
             T item, 
             Func<T, CancellationToken, Task> runWorkflowAsync)
         {
-            var q = pendingTasks.GetOrAdd(id, k => { 
-                lock(pendingTasks)
-                {
-                    return pendingTasks.GetOrAdd(k, i =>
-                    {
-                        lock (dispatchers)
-                        {
-                            TaskDispatcher d = dispatchers.FirstOrDefault(x => x.Count == 0);
-                            if (d == null || dispatchers.Count < maxWorkers)
-                            {
-                                d = new TaskDispatcher();
-                                dispatchers.Add(d);
-                                return d;
-                            }
-                            var f = dispatchers.OrderBy(x => x.Count).First();
-                            return f;
-                        }
-                    });
-                }
-            });
-            var s = new TaskCompletionSource<int>();
-            q.Add(async () =>
+            lock (pendingTasks)
             {
-                await runWorkflowAsync(item, CancellationToken.None);
-                s.TrySetResult(1);
-            });
-            return s.Task;
+                pendingTasks.TryGetValue(id, out var currentTask);
+                var ct = currentTask;
+                currentTask = Task.Run(async () =>
+                {
+                    if(ct != null)
+                    {
+                        await ct;
+                    }
+                    await runWorkflowAsync(item, cancellationTokenSource.Token);
+                });
+                pendingTasks[id] = currentTask;
+                return currentTask;
+            }
         }
     }
 
