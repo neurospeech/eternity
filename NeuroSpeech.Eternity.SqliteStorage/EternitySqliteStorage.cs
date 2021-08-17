@@ -105,7 +105,7 @@ ORDER BY SequenceID DESC
 
         private static long lockID = 1;
 
-        public async Task<WorkflowQueueItem[]> GetScheduledActivitiesAsync()
+        public async Task<WorkflowQueueItem[]> GetScheduledActivitiesAsync(int maxActivitiesToProcess)
         {
             using var db = await Open();
             var now = clock.UtcNow;
@@ -137,6 +137,8 @@ WHERE
                         ID = c.ID,
                         QueueToken = c.Token.ToString()
                     });
+                    if (results.Count == maxActivitiesToProcess)
+                        break;
                 }
             }
             return results.ToArray();

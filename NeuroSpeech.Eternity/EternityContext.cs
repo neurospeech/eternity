@@ -124,15 +124,15 @@ namespace NeuroSpeech.Eternity
         }
 
         public async Task ProcessMessagesAsync(
-            int maxParallelWorkflows = 100, 
+            int maxActivitiesToProcess = 100, 
             CancellationToken cancellationToken = default)
         {
             while(!cancellationToken.IsCancellationRequested)
             {
-                var items = await storage.GetScheduledActivitiesAsync();
+                var items = await storage.GetScheduledActivitiesAsync(maxActivitiesToProcess);
                 if (items.Length > 0)
                 {
-                    using var ws = new WorkflowScheduler<WorkflowQueueItem>(maxParallelWorkflows, cancellationToken);
+                    using var ws = new WorkflowScheduler<WorkflowQueueItem>(cancellationToken);
                     var tasks = new Task[items.Length];
                     for (int i = 0; i < items.Length; i++)
                     {
@@ -140,6 +140,7 @@ namespace NeuroSpeech.Eternity
                         tasks[i] = ws.Queue(item.ID, item, RunWorkflowAsync);
                     }
                     await Task.WhenAll(tasks);
+                    continue;
                 }
                 try
                 {
@@ -155,27 +156,27 @@ namespace NeuroSpeech.Eternity
 
         private Task<int>? previousTask = null;
 
-        public Task<int> ProcessMessagesOnceAsync(int maxParallelWorkflows = 100, CancellationToken cancellationToken = default) {
+        public Task<int> ProcessMessagesOnceAsync(int maxActivitiesToProcess = 100, CancellationToken cancellationToken = default) {
             lock (this)
             {
-                previousTask = InternalProcessMessagesOnceAsync(previousTask, maxParallelWorkflows, cancellationToken);
+                previousTask = InternalProcessMessagesOnceAsync(previousTask, maxActivitiesToProcess, cancellationToken);
                 return previousTask;
             }
         }
 
         private async Task<int> InternalProcessMessagesOnceAsync(
             Task<int>? previous,
-            int maxParallelWorkflows = 100, 
+            int maxActivitiesToProcess = 100, 
             CancellationToken cancellationToken = default)
         {
             if(previous != null)
             {
                 await previous;
             }
-            var items = await storage.GetScheduledActivitiesAsync();
+            var items = await storage.GetScheduledActivitiesAsync(maxActivitiesToProcess);
             if (items.Length == 0)
                 return items.Length;
-            using var ws = new WorkflowScheduler<WorkflowQueueItem>(maxParallelWorkflows, cancellationToken);
+            using var ws = new WorkflowScheduler<WorkflowQueueItem>(cancellationToken);
             var tasks = new Task[items.Length];
             for (int i = 0; i < items.Length; i++)
             {

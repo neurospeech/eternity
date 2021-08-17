@@ -83,11 +83,12 @@ namespace NeuroSpeech.Eternity.Mocks
             return Task.FromResult(e);
         }
 
-        public Task<WorkflowQueueItem[]> GetScheduledActivitiesAsync()
+        public Task<WorkflowQueueItem[]> GetScheduledActivitiesAsync(int maxActivitiesToProcess)
         {
             var pending = queue
                 .Where(x => x.ETA <= clock.UtcNow)
                 .OfType<WorkflowQueueItem>()
+                .Take(maxActivitiesToProcess)
                 .ToArray();
             return Task.FromResult(pending);
         }

@@ -125,7 +125,7 @@ namespace NeuroSpeech.Eternity
             return null;
         }
 
-        public async Task<WorkflowQueueItem[]> GetScheduledActivitiesAsync()
+        public async Task<WorkflowQueueItem[]> GetScheduledActivitiesAsync(int maxActivitiesToProcess)
         {
             // It is not good to submit multiple queue locking transaction in bulk
             // we want to get at least one message to process queue, chances of failing single message
@@ -154,7 +154,7 @@ namespace NeuroSpeech.Eternity
                 {
                     await ActivityQueue.UpdateEntityAsync(item, item.ETag);
                     list.Add(item);
-                    if (list.Count == 32)
+                    if (list.Count == maxActivitiesToProcess)
                         break;
                 }
                 catch (RequestFailedException re)

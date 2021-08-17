@@ -56,15 +56,13 @@ namespace NeuroSpeech.Eternity
 
     public class WorkflowScheduler<T> : IDisposable
     {
-        private readonly int maxWorkers;
         private readonly CancellationTokenSource cancellationTokenSource;
         private readonly CancellationTokenRegistration registration;
         private Dictionary<string, Task> pendingTasks
             = new Dictionary<string, Task>();
 
-        public WorkflowScheduler(int maxWorkers = 10, CancellationToken cancellationToken = default)
+        public WorkflowScheduler(CancellationToken cancellationToken = default)
         {
-            this.maxWorkers = maxWorkers;
             this.cancellationTokenSource = new CancellationTokenSource();
             this.registration = cancellationToken.Register(Dispose);
         }

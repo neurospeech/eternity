@@ -36,7 +36,7 @@ namespace NeuroSpeech.Eternity
 
         Task<ActivityStep> InsertActivityAsync(ActivityStep key);
 
-        Task<WorkflowQueueItem[]> GetScheduledActivitiesAsync();
+        Task<WorkflowQueueItem[]> GetScheduledActivitiesAsync(int maxActivitiesToProcess = 100);
 
         Task UpdateAsync(ActivityStep key);
 
