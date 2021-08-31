@@ -1,4 +1,5 @@
-﻿using System;
+﻿using NeuroSpeech.Eternity.Converters;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -46,7 +47,10 @@ namespace NeuroSpeech.Eternity
                 AllowTrailingCommas = true,
                 IgnoreReadOnlyProperties = true,
                 IgnoreReadOnlyFields = true,
-                DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+                DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
+                Converters = { 
+                    new ValueTupleConverter()
+                }
             };
         }
 
