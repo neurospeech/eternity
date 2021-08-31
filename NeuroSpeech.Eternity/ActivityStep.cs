@@ -108,9 +108,9 @@ namespace NeuroSpeech.Eternity
                 {
                     if (Key == null)
                         return null;
-                    var p = JsonSerializer.Deserialize<string?[]>(Key, new JsonSerializerOptions { 
+                    var p = JsonSerializer.Deserialize<List<string?>>(Key, new JsonSerializerOptions { 
                     })!;
-                    int n = p.Length - 4;
+                    int n = p.Count - 4;
                     var pa = new string[n];
                     for (int i = 0; i < n; i++)
                     {
