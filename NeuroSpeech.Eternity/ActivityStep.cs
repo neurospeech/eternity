@@ -108,13 +108,13 @@ namespace NeuroSpeech.Eternity
                 {
                     if (Key == null)
                         return null;
-                    var p = JsonSerializer.Deserialize<JsonElement?[]>(Key)!;
-                    var pp = p[4].GetValueOrDefault();
-                    var n = pp.GetArrayLength();
+                    var p = JsonSerializer.Deserialize<string?[]>(Key, new JsonSerializerOptions { 
+                    })!;
+                    int n = p.Length - 4;
                     var pa = new string[n];
                     for (int i = 0; i < n; i++)
                     {
-                        pa[i] = pp[i]!.GetString()!;
+                        pa[i] = p[i+4]!;
                     }
                     parameters = pa;
                 }
@@ -223,13 +223,14 @@ namespace NeuroSpeech.Eternity
         }
 
         private void SetKey(long ticks) {
-            this.Key = JsonSerializer.Serialize(new object?[] { 
+            var list = new List<string?>(4 + Parameters!.Length) {
                 this.ID,
                 this.ActivityType.ToString(),
-                Method,
+                this.Method,
                 ticks.ToString(),
-                Parameters
-            });
+            };
+            list.AddRange(Parameters);
+            this.Key = JsonSerializer.Serialize(list);
             Parameters = null;
         }
     }

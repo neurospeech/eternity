@@ -27,5 +27,21 @@ namespace NeuroSpeech.Eternity.Tests
             Assert.AreEqual(two, 2.0);
         }
 
+        [TestMethod]
+        public void DateTest()
+        {
+            var options = new JsonSerializerOptions();
+            options.Converters.Add(new ValueTupleConverter());
+
+            var dt = new DateTime(2021, 1, 1,0,0,0, DateTimeKind.Utc);
+            var dtJson = JsonSerializer.Serialize(dt);
+            var st = JsonSerializer.Serialize(new[] { dtJson });
+            var et = JsonSerializer.Deserialize<JsonElement[]>(st);
+            var tt = et[0].GetString();
+            var date = JsonSerializer.Deserialize<DateTime>(tt);
+            Assert.AreEqual(dt, date);
+
+        }
+
     }
 }
