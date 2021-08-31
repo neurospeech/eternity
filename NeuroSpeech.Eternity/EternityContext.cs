@@ -330,7 +330,6 @@ namespace NeuroSpeech.Eternity
                 status.Result = "null";
                 status.LastUpdated = utcNow;
                 await storage.UpdateAsync(status);
-                await storage.UpdateAsync(status);
                 if(status.QueueToken != null)
                 {
                     await storage.RemoveQueueAsync(status.QueueToken);
