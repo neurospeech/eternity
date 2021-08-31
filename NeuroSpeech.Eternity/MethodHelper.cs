@@ -55,7 +55,7 @@ namespace NeuroSpeech.Eternity
                 iLGenerator.Emit(OpCodes.Ldelem_Ref); // get element
 
                 var parameterType = parameter.ParameterType;
-                if (parameterType.IsPrimitive)
+                if (parameterType.IsPrimitive || parameterType.IsValueType)
                 {
                     iLGenerator.Emit(OpCodes.Unbox_Any, parameterType);
                 }
