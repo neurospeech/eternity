@@ -12,6 +12,65 @@ using System.Threading.Tasks;
 
 namespace NeuroSpeech.Eternity
 {
+    public class AzureStorageConfig
+    {
+        public string ConnectionString { get; set; }
+
+        public string TableActivities { get; set; }
+
+        public string TableWorkflows { get; set; }
+
+        public string TableQueue { get; set; }
+
+        public string BlobContainerLocks { get; set; }
+
+        public string BlockContainerParamStorage { get; set; }
+
+        public bool CreateStorage { get; set; }
+
+        public AzureStorageConfig()
+        {
+            TableActivities = "etactvities";
+            TableWorkflows = "etworkflows";
+            TableQueue = "etqueue";
+            BlobContainerLocks = "etlocks";
+            BlockContainerParamStorage = "etparamstorage";
+        }
+
+        public static implicit operator AzureStorageConfig((string prefix, string connectionString) p1)
+        {
+            var (prefix, connectionString) = p1;
+            return new AzureStorageConfig
+            {
+                ConnectionString = connectionString,
+                TableWorkflows = $"{prefix}Workflows".ToLower(),
+                TableActivities = $"{prefix}Activities".ToLower(),
+                TableQueue = $"{prefix}Queue".ToLower(),
+                BlobContainerLocks = $"{prefix}Locks".ToLower(),
+                BlockContainerParamStorage = $"{prefix}ParamStorage".ToLower(),
+            };
+
+        }
+
+
+        public static implicit operator AzureStorageConfig((string prefix, string connectionString, bool createStorage) p1)
+        {
+            var (prefix, connectionString, createStorage) = p1;
+            return new AzureStorageConfig
+            {
+                ConnectionString = connectionString,
+                TableWorkflows = $"{prefix}Workflows".ToLower(),
+                TableActivities = $"{prefix}Activities".ToLower(),
+                TableQueue = $"{prefix}Queue".ToLower(),
+                BlobContainerLocks = $"{prefix}Locks".ToLower(),
+                BlockContainerParamStorage = $"{prefix}ParamStorage".ToLower(),
+                CreateStorage = createStorage
+
+            };
+
+        }
+    }
+
     public class EternityAzureStorage : IEternityStorage
     {
         private readonly TableServiceClient TableClient;
@@ -21,22 +80,34 @@ namespace NeuroSpeech.Eternity
         private readonly TableClient ActivityQueue;
         private readonly BlobContainerClient Locks;
         private readonly BlobContainerClient ParamStorage;
-        
 
-        public EternityAzureStorage(string prefix, string connectionString, bool createStorage = false)
+        //public EternityAzureStorage(string prefix, string connectionString, bool createStorage = false)
+        //    : this(new AzureStorageConfig {
+        //        ConnectionString = connectionString,
+        //        TableWorkflows = $"{prefix}Workflows".ToLower(),
+        //        TableActivities = $"{prefix}Activities".ToLower(),
+        //        TableQueue = $"{prefix}Queue".ToLower(),
+        //        BlobContainerLocks = $"{prefix}Locks".ToLower(),
+        //        BlockContainerParamStorage = $"{prefix}ParamStorage".ToLower(),
+        //        CreateStorage = createStorage
+        //    })
+        //{ 
+        //}
+
+        public EternityAzureStorage(AzureStorageConfig config)
         {
-            this.TableClient = new TableServiceClient(connectionString);
+            this.TableClient = new TableServiceClient(config.ConnectionString);
             // this.QueueClient = new QueueServiceClient(connectionString).GetQueueClient($"{prefix}Workflows".ToLower());
-            var storageClient = new BlobServiceClient(connectionString);
-            this.Activities = TableClient.GetTableClient($"{prefix}Activities".ToLower());
-            this.Workflows = TableClient.GetTableClient($"{prefix}Workflows".ToLower());
-            this.ActivityQueue = TableClient.GetTableClient($"{prefix}Queue".ToLower());
-            this.Locks = storageClient.GetBlobContainerClient($"{prefix}Locks".ToLower());
-            this.ParamStorage = storageClient.GetBlobContainerClient($"{prefix}ParamStorage".ToLower());
+            var storageClient = new BlobServiceClient(config.ConnectionString);
+            this.Activities = TableClient.GetTableClient(config.TableActivities);
+            this.Workflows = TableClient.GetTableClient(config.TableWorkflows);
+            this.ActivityQueue = TableClient.GetTableClient(config.TableQueue);
+            this.Locks = storageClient.GetBlobContainerClient(config.BlobContainerLocks);
+            this.ParamStorage = storageClient.GetBlobContainerClient(config.BlockContainerParamStorage);
 
 
             // QueueClient.CreateIfNotExists();
-            if (createStorage)
+            if (config.CreateStorage)
             {
                 try
                 {
