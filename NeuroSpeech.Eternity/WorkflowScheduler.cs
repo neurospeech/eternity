@@ -81,22 +81,22 @@ namespace NeuroSpeech.Eternity
             T item, 
             Func<T, CancellationToken, Task> runWorkflowAsync)
         {
-            return Task.Run(() => runWorkflowAsync(item, this.cancellationTokenSource.Token));
-            //lock (pendingTasks)
-            //{
-            //    pendingTasks.TryGetValue(id, out var currentTask);
-            //    var ct = currentTask;
-            //    currentTask = Task.Run(async () =>
-            //    {
-            //        if(ct != null)
-            //        {
-            //            await ct;
-            //        }
-            //        await runWorkflowAsync(item, cancellationTokenSource.Token);
-            //    });
-            //    pendingTasks[id] = currentTask;
-            //    return currentTask;
-            //}
+            // return Task.Run(() => runWorkflowAsync(item, this.cancellationTokenSource.Token));
+            lock (pendingTasks)
+            {
+                pendingTasks.TryGetValue(id, out var currentTask);
+                var ct = currentTask;
+                currentTask = Task.Run(async () =>
+                {
+                    if (ct != null)
+                    {
+                        await ct;
+                    }
+                    await runWorkflowAsync(item, cancellationTokenSource.Token);
+                });
+                pendingTasks[id] = currentTask;
+                return currentTask;
+            }
         }
     }
 
