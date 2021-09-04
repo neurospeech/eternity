@@ -129,8 +129,13 @@ namespace NeuroSpeech.Eternity
 
         public async Task ProcessMessagesAsync(
             int maxActivitiesToProcess = 100, 
+            TimeSpan pollingGap = default,
             CancellationToken cancellationToken = default)
         {
+            if(pollingGap == TimeSpan.Zero)
+            {
+                pollingGap = TimeSpan.FromMinutes(5);
+            }
             while(!cancellationToken.IsCancellationRequested)
             {
                 var items = await storage.GetScheduledActivitiesAsync(maxActivitiesToProcess);
@@ -150,7 +155,7 @@ namespace NeuroSpeech.Eternity
                 {
                     var c = new CancellationTokenSource();
                     waiter = c;
-                    await Task.Delay(15000, c.Token);
+                    await Task.Delay(pollingGap, c.Token);
                 } catch (TaskCanceledException)
                 {
 
