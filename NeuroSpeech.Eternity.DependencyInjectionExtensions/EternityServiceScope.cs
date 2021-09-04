@@ -5,6 +5,7 @@ using System.Text;
 
 namespace NeuroSpeech.Eternity
 {
+
     public class EternityServiceScopeFactory : IServiceScopeFactory
     {
         public IEternityServiceScope CreateScope(IServiceProvider services)

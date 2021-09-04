@@ -7,6 +7,7 @@
     <Authors>Akash Kava</Authors>
     <Company>NeuroSpeech Technologies Pvt Ltd</Company>
     <Version>1.0.1</Version>
+    <Description>Azure Storage for Eternity Project, Long running workflows with ability to suspend and replay the workflow in future.</Description>
     <LangVersion>latest</LangVersion>
     <DebugSymbols>true</DebugSymbols>
     <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>

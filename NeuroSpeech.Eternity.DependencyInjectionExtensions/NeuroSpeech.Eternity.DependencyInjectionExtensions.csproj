@@ -9,6 +9,7 @@
     <Version>1.0.1</Version>
     <LangVersion>latest</LangVersion>
     <DebugSymbols>true</DebugSymbols>
+    <Description>Dependency Injection Extensions for Eternity Project, Long running workflows with ability to suspend and replay the workflow in future.</Description>
     <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <IncludeSymbols>true</IncludeSymbols>

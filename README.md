@@ -5,12 +5,13 @@
 Long running workflows with ability to suspend and replay the workflow in future.
 
 ## NuGet
-| Name                               | Package                                                                                                                                                        |
-|------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| NeuroSpeech.Eternity               | [![NuGet](https://img.shields.io/nuget/v/NeuroSpeech.Eternity.svg?label=NuGet)](https://www.nuget.org/packages/NeuroSpeech.Eternity)                           |
-| NeuroSpeech.Eternity.AzureStorage  | [![NuGet](https://img.shields.io/nuget/v/NeuroSpeech.Eternity.AzureStorage.svg?label=NuGet)](https://www.nuget.org/packages/NeuroSpeech.Eternity.AzureStorage) |
-| NeuroSpeech.Eternity.SqliteStorage | [![NuGet](https://img.shields.io/nuget/v/NeuroSpeech.Eternity.SqliteStorage.svg?label=NuGet)](https://www.nuget.org/packages/NeuroSpeech.Eternity.SqliteStorage) |
-| NeuroSpeech.Eternity.Mocks         | [![NuGet](https://img.shields.io/nuget/v/NeuroSpeech.Eternity.Mocks.svg?label=NuGet)](https://www.nuget.org/packages/NeuroSpeech.Eternity.Mocks)               |
+| Name                                               | Package                                                                                                                                                        |
+|----------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| NeuroSpeech.Eternity                               | [![NuGet](https://img.shields.io/nuget/v/NeuroSpeech.Eternity.svg?label=NuGet)](https://www.nuget.org/packages/NeuroSpeech.Eternity)                           |
+| NeuroSpeech.Eternity.DependencyInjectionExtensions | [![NuGet](https://img.shields.io/nuget/v/NeuroSpeech.Eternity.DependencyInjectionExtensions.svg?label=NuGet)](https://www.nuget.org/packages/NeuroSpeech.Eternity.DependencyInjectionExtensions) |
+| NeuroSpeech.Eternity.AzureStorage                  | [![NuGet](https://img.shields.io/nuget/v/NeuroSpeech.Eternity.AzureStorage.svg?label=NuGet)](https://www.nuget.org/packages/NeuroSpeech.Eternity.AzureStorage) |
+| NeuroSpeech.Eternity.SqliteStorage                 | [![NuGet](https://img.shields.io/nuget/v/NeuroSpeech.Eternity.SqliteStorage.svg?label=NuGet)](https://www.nuget.org/packages/NeuroSpeech.Eternity.SqliteStorage) |
+| NeuroSpeech.Eternity.Mocks                         | [![NuGet](https://img.shields.io/nuget/v/NeuroSpeech.Eternity.Mocks.svg?label=NuGet)](https://www.nuget.org/packages/NeuroSpeech.Eternity.Mocks)               |
 
 
 ## Features
@@ -169,6 +170,14 @@ public class RenewMembershipWorkflow: Workflow<RenewMembershipWorkflow,long,stri
     
 }
 
+```
+
+### .NET Standard DependencyInjection
+
+To enable scoped services, add following.
+
+```c#
+services.AddEternityServiceScope();
 ```
 
 ### Wait for External Event
