@@ -6,7 +6,7 @@ namespace NeuroSpeech.Eternity
     {
         public static void AddEternityServiceScope(this IServiceCollection services)
         {
-            services.AddSingleton(typeof(IServiceScopeFactory, typeof(EternityServiceScopeFactory));
+            services.AddSingleton(typeof(IServiceScopeFactory), typeof(EternityServiceScopeFactory));
         }
     }
 }
