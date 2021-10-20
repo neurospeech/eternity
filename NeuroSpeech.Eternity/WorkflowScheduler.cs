@@ -54,6 +54,97 @@ namespace NeuroSpeech.Eternity
         }
     }
 
+    public class WorkflowQueue : IDisposable
+    {
+        private readonly CancellationTokenSource cancellationTokenSource;
+        private readonly CancellationTokenRegistration registration;
+        private ConcurrentDictionary<string, Task> pendingTasks
+            = new ConcurrentDictionary<string, Task>();
+
+        public WorkflowQueue(CancellationToken cancellationToken = default)
+        {
+            this.cancellationTokenSource = new CancellationTokenSource();
+            this.registration = cancellationToken.Register(Dispose);
+        }
+
+
+
+        public void Dispose()
+        {
+            if (!cancellationTokenSource.IsCancellationRequested)
+                cancellationTokenSource.Cancel();
+            cancellationTokenSource.Dispose();
+            registration.Dispose();
+        }
+
+        public void ClearCompleted()
+        {
+            foreach(var item in pendingTasks.ToList())
+            {
+                if(item.Value.IsCompleted || item.Value.IsFaulted || item.Value.IsCanceled)
+                {
+                    pendingTasks.TryRemove(item.Key, out var _);
+                }
+            }
+        }
+
+        public async Task WaitForAll()
+        {
+            await Task.WhenAll(pendingTasks.Values);
+            pendingTasks.Clear();
+        }
+
+        /// <summary>
+        /// This will queue all tasks and will wait till 50% of them are done.
+        /// </summary>
+        /// <param name="items"></param>
+        /// <param name="runWorkflowAsync"></param>
+        /// <returns></returns>
+        internal Task<int> QueueAny(WorkflowQueueItem[] items, Func<WorkflowQueueItem, CancellationToken, Task> runWorkflowAsync)
+        {
+            var waiter = new TaskCompletionSource<int>();
+            int done = 0;
+            int max = items.Length / 2;
+            // var tasks = new Task[items.Length];
+            for (int i = 0; i < items.Length; i++)
+            {
+                var item = items[i];
+
+                pendingTasks.AddOrUpdate(item.ID, 
+                    (x) => Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await runWorkflowAsync(item, cancellationTokenSource.Token);
+                        } finally
+                        {
+                            Interlocked.Increment(ref done);
+                            if(done >= max)
+                            {
+                                waiter.TrySetResult(pendingTasks.Count);
+                            }
+                        }
+                    }),
+                    (x, existing) => Task.Run(async () => {
+                        try
+                        {
+                            await existing;
+                            await runWorkflowAsync(item, cancellationTokenSource.Token);
+                        } finally
+                        {
+                            Interlocked.Increment(ref done);
+                            if (done >= max)
+                            {
+                                waiter.TrySetResult(pendingTasks.Count);
+                            }
+                        }
+                    }));
+                
+            }
+            return waiter.Task;
+        }
+    }
+
     public class WorkflowScheduler<T> : IDisposable
     {
         private readonly CancellationTokenSource cancellationTokenSource;

@@ -127,6 +127,57 @@ namespace NeuroSpeech.Eternity
             return status;
         }
 
+        public async Task ProcessChunkedMessagesAsync(
+            int maxActivitiesToProcess = 10000,
+            int chunkSize = 100,
+            TimeSpan pollingGap = default,
+            CancellationToken cancellationToken = default)
+        {
+            if (pollingGap == TimeSpan.Zero)
+            {
+                pollingGap = TimeSpan.FromMinutes(5);
+            }
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                var items = await storage.GetScheduledActivitiesAsync(chunkSize);
+                if (items.Length > 0)
+                {
+                    using var ws = new WorkflowQueue(cancellationToken);
+                    var pending = maxActivitiesToProcess;
+                    while (pending > 0)
+                    {
+                        int remaining = await ws.QueueAny(items, RunWorkflowAsync);
+
+                        if(remaining > chunkSize)
+                        {
+                            await ws.WaitForAll();
+                        }
+                        else
+                        {
+                            ws.ClearCompleted();
+                        }
+
+                        pending -= items.Length;
+                        items = await storage.GetScheduledActivitiesAsync(chunkSize);
+                        if (items.Length == 0)
+                            break;
+                    }
+                    await ws.WaitForAll();
+                    continue;
+                }
+                try
+                {
+                    var c = new CancellationTokenSource();
+                    waiter = c;
+                    await Task.Delay(pollingGap, c.Token);
+                }
+                catch (TaskCanceledException)
+                {
+
+                }
+            }
+        }
+
         public async Task ProcessMessagesAsync(
             int maxActivitiesToProcess = 100, 
             TimeSpan pollingGap = default,
