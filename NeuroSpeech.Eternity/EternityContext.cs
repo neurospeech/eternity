@@ -253,6 +253,7 @@ namespace NeuroSpeech.Eternity
             if(queueItem.Command == "Delete")
             {
                 await storage.DeleteWorkflowAsync(queueItem.ID);
+                await storage.RemoveQueueAsync(queueItem.QueueToken);
                 session?.LogInformation($"Workflow {queueItem.ID} deleted");
                 return;
             }
