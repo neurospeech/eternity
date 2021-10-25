@@ -230,7 +230,7 @@ namespace NeuroSpeech.Eternity
                 }
                 catch (RequestFailedException re)
                 {
-                    if (re.Status == 419)
+                    if (re.Status == 419 || re.Status == 404)
                         continue;
                     throw;
                 }
