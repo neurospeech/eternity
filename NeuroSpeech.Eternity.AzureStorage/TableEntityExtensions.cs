@@ -66,8 +66,12 @@ namespace NeuroSpeech.Eternity
                 var top = items.Take(100).Select(x => new TableTransactionAction(TableTransactionActionType.Delete,
                     new TableEntity(x.partitionKey, x.rowKey), ETag.All
                     ));
+
+                foreach (var g in top.GroupBy(x => x.Entity.PartitionKey).ToList())
+                {
+                    await client.SubmitTransactionAsync(g);
+                }
                 items = items.Skip(100);
-                await client.SubmitTransactionAsync(top);
             }
         }
         public static async Task DeleteAllAsync(this TableClient client, string partitionKey)
