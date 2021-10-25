@@ -109,13 +109,13 @@ ORDER BY SequenceID DESC
         {
             using var db = await Open();
             var now = clock.UtcNow;
-            var locked = now.AddMinutes(15);
+            var locked = now.AddMinutes(1);
             var q = TemplateQuery.New($"SELECT * FROM QueueTokens WHERE ETA <= {now.UtcTicks} LIMIT 32");
             var list = await db.FromSqlAsync<QueueToken>(q, true);
             List<WorkflowQueueItem> results = new List<WorkflowQueueItem>();
             foreach (var c in list)
             {
-                if (c.ETALocked > now.UtcTicks)
+                if (c.ETALocked > locked.Ticks)
                     continue;
                 var lid = Interlocked.Increment(ref lockID);
                 // update single...

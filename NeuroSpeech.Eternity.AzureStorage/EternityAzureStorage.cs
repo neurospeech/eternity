@@ -205,18 +205,18 @@ namespace NeuroSpeech.Eternity
             var now = DateTimeOffset.UtcNow;
             var nowTicks = now.UtcTicks;
 
-            var locked = now.AddSeconds(60).UtcTicks;
 
             var list = new List<TableEntity>();
             await foreach(var item in ActivityQueue.QueryAsync<TableEntity>())
             {
+                var locked = now.AddSeconds(60).UtcTicks;
                 var eta = item.GetDateTimeOffset("ETA").Value.UtcTicks;
                 if(eta > nowTicks)
                 {
                     break;
                 }
                 var entityLocked = item.GetInt64("Locked").GetValueOrDefault();
-                if (entityLocked != 0 && entityLocked < locked)
+                if (entityLocked != 0 && entityLocked > locked)
                 {
                     continue;
                 }
