@@ -65,11 +65,19 @@ namespace NeuroSpeech.Eternity
             {
                 var top = items.Take(100).Select(x => new TableTransactionAction(TableTransactionActionType.Delete,
                     new TableEntity(x.partitionKey, x.rowKey), ETag.All
-                    ));
-
-                foreach (var g in top.GroupBy(x => x.Entity.PartitionKey).ToList())
+                    )).ToList();
+                foreach (var item in top)
                 {
-                    await client.SubmitTransactionAsync(g);
+                    try
+                    {
+                        await client.DeleteEntityAsync(item.Entity.PartitionKey, item.Entity.RowKey, ETag.All);
+                    }
+                    catch (RequestFailedException ex)
+                    {
+                        if (ex.Status == 419 || ex.Status == 404)
+                            continue;
+                        throw;
+                    }
                 }
                 items = items.Skip(100);
             }
