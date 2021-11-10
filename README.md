@@ -26,6 +26,7 @@ Long running workflows with ability to suspend and replay the workflow in future
 9. Support for non deterministic workflows, activities are isolated by parameters and time of execution, (you can also make Activity unique) so same activity method with same parameter anywhere in the workflow will execute only once and will give same result.
 10. Workflow can wait for multiple events, and when you raise an event, it will optionally throw an exception if workflow is not waiting.
 11. You can wait for events for days/months. It does not occupy any resources, waiting occurs in queue, and workers do not stay busy while waiting.
+12. .NET Standard 2.0 support, it means it can run anywhere without any native/local dependency.
 
 # Documentation
 1. [Home](https://github.com/neurospeech/eternity/wiki)
