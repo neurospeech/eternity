@@ -406,6 +406,8 @@ namespace NeuroSpeech.Eternity
                         break;
                     }
                 }
+                if (list.Count == 0)
+                    return;
                 foreach(var item in list)
                 {
                     await DeleteWorkflowAsync(item.PartitionKey);
