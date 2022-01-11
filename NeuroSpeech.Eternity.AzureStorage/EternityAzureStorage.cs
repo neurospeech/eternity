@@ -391,5 +391,64 @@ namespace NeuroSpeech.Eternity
             await DeleteHistoryAsync(id);
             await Workflows.DeleteAllAsync(id);
         }
+
+        public async Task DeleteOldWorkflows(int beforeDays = 30)
+        {
+            var before = DateTime.UtcNow.AddDays(-beforeDays);
+            while (true)
+            {
+                var list = new List<TableEntity>();
+                await foreach (var item in Workflows.QueryAsync<TableEntity>(x => x.Timestamp < before))
+                {
+                    list.Add(item);
+                    if (list.Count > 100)
+                    {
+                        break;
+                    }
+                }
+                foreach(var item in list)
+                {
+                    await DeleteWorkflowAsync(item.PartitionKey);
+                }
+            }
+        }
+
+
+        public async Task DeleteOrphanActivities(int beforeDays = 30)
+        {
+            var before = DateTime.UtcNow.AddDays(-beforeDays);
+            while (true)
+            {
+                var d = new Dictionary<string, List<TableTransactionAction>>();
+                await foreach (var item in Activities.QueryAsync<TableEntity>(x => x.Timestamp < before))
+                {
+                    if (!d.TryGetValue(item.PartitionKey, out var list))
+                    {
+                        list = new List<TableTransactionAction>();
+                        d[item.PartitionKey] = list;
+                    }
+                    list.Add(new TableTransactionAction(TableTransactionActionType.Delete, item, item.ETag));
+                    if (list.Count > 100)
+                    {
+                        break;
+                    }
+                    if (d.Count > 100)
+                    {
+                        break;
+                    }
+                }
+                if (d.Count == 0)
+                    return;
+                foreach (var item in d)
+                {
+                    var r = await GetWorkflowAsync(item.Key);
+                    if (r != null)
+                    {
+                        continue;
+                    }
+                    await Activities.SubmitTransactionAsync(item.Value);
+                }
+            }
+        }
     }
 }
