@@ -400,10 +400,15 @@ namespace NeuroSpeech.Eternity
                 var list = new List<TableEntity>();
                 await foreach (var item in Workflows.QueryAsync<TableEntity>(x => x.Timestamp < before))
                 {
-                    list.Add(item);
-                    if (list.Count > 100)
+                    var w = item.ToObject<WorkflowStep>();
+                    if (w.Status == ActivityStatus.Completed || w.Status == ActivityStatus.Failed)
                     {
-                        break;
+                        list.Add(item);
+
+                        if (list.Count > 100)
+                        {
+                            break;
+                        }
                     }
                 }
                 if (list.Count == 0)
