@@ -392,8 +392,10 @@ namespace NeuroSpeech.Eternity
             await Workflows.DeleteAllAsync(id);
         }
 
-        public async Task DeleteOldWorkflows(int beforeDays = 30)
+        public async Task DeleteOldWorkflows(uint beforeDays = 30)
         {
+            if (beforeDays == 0)
+                throw new ArgumentException();
             var before = DateTime.UtcNow.AddDays(-beforeDays);
             while (true)
             {
@@ -421,8 +423,10 @@ namespace NeuroSpeech.Eternity
         }
 
 
-        public async Task DeleteOrphanActivities(int beforeDays = 30)
+        public async Task DeleteOrphanActivities(uint beforeDays = 30)
         {
+            if (beforeDays == 0)
+                throw new ArgumentException();
             var before = DateTime.UtcNow.AddDays(-beforeDays);
             while (true)
             {
