@@ -411,6 +411,18 @@ namespace NeuroSpeech.Eternity
                 await storage.RemoveQueueAsync(status.QueueToken);
         }
 
+        public T ResolveSingleton<T>()
+        {
+            return this.services.GetService(typeof(T)) is T service
+                ? service
+                : throw new ArgumentException($"Cannot resolve service {typeof(T).FullName}");
+        }
+        
+        public IEternityServiceScope CreateScope()
+        {
+            return this.scopeFactory?.CreateScope(services) ?? throw new ArgumentException($"ScopeFactory is not set");
+        }
+
         /// <summary>
         /// 
         /// </summary>
