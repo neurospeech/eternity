@@ -270,10 +270,10 @@ namespace NeuroSpeech.Eternity
             // we need to begin...
             var instance = GetWorkflowInstance(workflowType, step.ID!, step.LastUpdated);
             instance.QueueItemList.Add(queueItem.QueueToken);
-            var input = JsonSerializer.Deserialize(step.Parameter!, instance.InputType, options);
             DateTimeOffset deleteOn;
             try
             {
+                var input = JsonSerializer.Deserialize(step.Parameter!, instance.InputType, options);
                 var result = await instance.RunAsync(input!);
                 step.Result = JsonSerializer.Serialize(result, options);
                 step.LastUpdated = clock.UtcNow;

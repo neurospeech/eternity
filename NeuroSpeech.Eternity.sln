@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.31129.286
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.32126.317
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NeuroSpeech.Eternity", "NeuroSpeech.Eternity\NeuroSpeech.Eternity.csproj", "{C3B09F1A-0E85-4752-85EB-A8BB66886CD9}"
 EndProject
@@ -13,6 +13,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NeuroSpeech.Eternity.Tests"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{1F5C638F-13BA-48C1-9138-7FD4FE671138}"
 	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
 		README.md = README.md
 		version.json = version.json
 	EndProjectSection
@@ -23,7 +24,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NeuroSpeech.Eternity.SqlSto
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NeuroSpeech.Eternity.SqliteStorage.Tests", "NeuroSpeech.Eternity.SqliteStorage.Tests\NeuroSpeech.Eternity.SqliteStorage.Tests.csproj", "{0CCDD6B8-80D8-4FC0-B6E2-54A0F5469CAF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NeuroSpeech.Eternity.DependencyInjectionExtensions", "NeuroSpeech.Eternity.DependencyInjectionExtensions\NeuroSpeech.Eternity.DependencyInjectionExtensions.csproj", "{5200E2F8-58F8-4C67-B8DE-4418DF6746F3}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NeuroSpeech.Eternity.DependencyInjectionExtensions", "NeuroSpeech.Eternity.DependencyInjectionExtensions\NeuroSpeech.Eternity.DependencyInjectionExtensions.csproj", "{5200E2F8-58F8-4C67-B8DE-4418DF6746F3}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
