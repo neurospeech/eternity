@@ -462,8 +462,20 @@ namespace NeuroSpeech.Eternity
             key.QueueToken = await storage.QueueWorkflowAsync(new WorkflowQueueItem { ID = key.ID!, ETA = key.ETA }, key.QueueToken);
             await storage.UpdateAsync(key);
             Trigger();
+            if (waitingTokens.TryGetValue(key.Key!, out var ct)) {
+                if (!ct.IsCancellationRequested)
+                {
+                    try
+                    {
+                        ct.Cancel();
+                    }
+                    catch { }
+                }
+            }
             session?.LogInformation($"Workflow {id} Queued successfully.");
         }
+
+        private static ConcurrentDictionary<string, CancellationTokenSource> waitingTokens = new ConcurrentDictionary<string, CancellationTokenSource>();
 
         internal async Task<(string? name, string? value)> WaitForExternalEventsAsync(
             IWorkflow workflow, 
@@ -500,7 +512,15 @@ namespace NeuroSpeech.Eternity
 
                 if (diff.TotalMilliseconds > 0)
                 {
-                    await Task.Delay(diff);
+                    var token = waitingTokens.GetOrAdd($"{key.Key}", (a) => new CancellationTokenSource());
+                    if (!token.IsCancellationRequested)
+                    {
+                        try
+                        {
+                            await Task.Delay(diff, token.Token);
+                        }
+                        catch (TaskCanceledException) { }
+                    }
                 }
 
                 status = await GetActivityResultAsync(workflow, status);
