@@ -177,6 +177,10 @@ namespace NeuroSpeech.Eternity
             await foreach (var e in Activities.QueryAsync<TableEntity>(filter, 1))
             {
                 keyHash = e.GetString("StepRowKey");
+                if (keyHash != null)
+                {
+                    break;
+                }
             }
             // this is the case when History may be deleted
             if (keyHash == null)
