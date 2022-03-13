@@ -512,7 +512,9 @@ namespace NeuroSpeech.Eternity
 
                 if (diff.TotalMilliseconds > 0)
                 {
-                    var token = waitingTokens.GetOrAdd($"{key.Key}", (a) => new CancellationTokenSource());
+                    var tokenKey = $"{key.Key}";
+                    waitingTokens.TryRemove(tokenKey, out var _);
+                    var token = waitingTokens.GetOrAdd(tokenKey, (a) => new CancellationTokenSource());
                     if (!token.IsCancellationRequested)
                     {
                         try
