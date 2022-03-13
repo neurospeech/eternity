@@ -461,7 +461,6 @@ namespace NeuroSpeech.Eternity
             // we need to change queue token here...
             key.QueueToken = await storage.QueueWorkflowAsync(new WorkflowQueueItem { ID = key.ID!, ETA = key.ETA }, key.QueueToken);
             await storage.UpdateAsync(key);
-            Trigger();
             if (waitingTokens.TryGetValue(key.Key!, out var ct)) {
                 if (!ct.IsCancellationRequested)
                 {
@@ -472,6 +471,7 @@ namespace NeuroSpeech.Eternity
                     catch { }
                 }
             }
+            Trigger();
             session?.LogInformation($"Workflow {id} Queued successfully.");
         }
 
