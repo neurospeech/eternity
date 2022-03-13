@@ -516,14 +516,11 @@ namespace NeuroSpeech.Eternity
                     var token = waitingTokens.AddOrUpdate(tokenKey,
                         (x) => new CancellationTokenSource(),
                         (k, update) => new CancellationTokenSource());
-                    if (!token.IsCancellationRequested)
+                    try
                     {
-                        try
-                        {
-                            await Task.Delay(diff, token.Token);
-                        }
-                        catch (TaskCanceledException) { }
+                        await Task.Delay(diff, token.Token);
                     }
+                    catch (TaskCanceledException) { }
                 }
 
                 status = await GetActivityResultAsync(workflow, status);
