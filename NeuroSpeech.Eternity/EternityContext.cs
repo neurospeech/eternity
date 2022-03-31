@@ -206,6 +206,10 @@ namespace NeuroSpeech.Eternity
                 {
                     var c = new CancellationTokenSource();
                     waiter = c;
+                    cancellationToken.Register(() =>
+                    {
+                        if (!c.IsCancellationRequested) c.Cancel();
+                    });
                     await Task.Delay(pollingGap, c.Token);
                 } catch (TaskCanceledException)
                 {
