@@ -462,6 +462,7 @@ namespace NeuroSpeech.Eternity
             });
             key.ETA = clock.UtcNow;
             key.Status = ActivityStatus.Completed;
+            key.LastUpdated = clock.UtcNow;
             // we need to change queue token here...
             key.QueueToken = await storage.QueueWorkflowAsync(new WorkflowQueueItem { ID = key.ID!, ETA = key.ETA }, key.QueueToken);
             await storage.UpdateAsync(key);

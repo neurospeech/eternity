@@ -150,6 +150,61 @@ namespace NeuroSpeech.Eternity.Tests
         }
 
         [TestMethod]
+        public async Task ResendAfterWrongCodeAsync()
+        {
+            var engine = new MockEngine();
+            var emailService = engine.EmailService;
+            var context = engine.Resolve<EternityContext>();
+
+            // send email..
+            var id = await SignupWorkflow.CreateAsync(context, "sample@gmail.com");
+
+            engine.Clock.UtcNow += TimeSpan.FromMinutes(5);
+
+            await context.ProcessMessagesOnceAsync();
+
+            // check if we received the email..
+            Assert.IsTrue(emailService.Emails.Any());
+
+            var code = emailService.Emails[0].code;
+
+            engine.Clock.UtcNow += TimeSpan.FromMinutes(1);
+            await context.RaiseEventAsync(id, SignupWorkflow.Verify, code + "4");
+
+            engine.Clock.UtcNow += TimeSpan.FromMinutes(1);
+
+            await context.ProcessMessagesOnceAsync();
+
+            // fire event..
+            await context.RaiseEventAsync(id, SignupWorkflow.Resend, null);
+
+            engine.Clock.UtcNow += TimeSpan.FromMinutes(1);
+
+            await context.ProcessMessagesOnceAsync();
+
+            Assert.AreEqual(2, emailService.Emails.Count);
+
+            await context.RaiseEventAsync(id, SignupWorkflow.Verify, code);
+
+            engine.Clock.UtcNow += TimeSpan.FromMinutes(1);
+
+            await context.ProcessMessagesOnceAsync();
+
+            var status = await engine.Storage.GetWorkflowAsync(id);
+
+            Assert.AreEqual(status.Status, ActivityStatus.Completed);
+
+            Assert.AreEqual(status.Result, "\"Verified\"");
+
+            engine.Clock.UtcNow += TimeSpan.FromDays(60);
+
+            await context.ProcessMessagesOnceAsync();
+
+            Assert.AreEqual(0, engine.Storage.QueueSize);
+
+        }
+
+        [TestMethod]
         public async Task TimedOut()
         {
             var engine = new MockEngine();
