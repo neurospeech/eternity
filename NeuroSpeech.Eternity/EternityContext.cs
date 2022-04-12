@@ -644,11 +644,11 @@ namespace NeuroSpeech.Eternity
                 {
                     case ActivityStatus.Completed:
                         workflow.SetCurrentTime(key.LastUpdated);
-                        session?.LogInformation($"Wrokflow {workflow.ID} executing activity finished");
+                        session?.LogInformation($"Wrokflow {workflow.ID} activity has finished");
                         return;
                     case ActivityStatus.Failed:
                         workflow.SetCurrentTime(key.LastUpdated);
-                        session?.LogInformation($"Wrokflow {workflow.ID} executing activity failed {task.Error}");
+                        session?.LogInformation($"Wrokflow {workflow.ID} activity has failed {task.Error}");
                         throw new ActivityFailedException(key.Error!);
                 }
 
@@ -682,7 +682,7 @@ namespace NeuroSpeech.Eternity
                     key.LastUpdated = clock.UtcNow;
                     await storage.UpdateAsync(key);
                     workflow.SetCurrentTime(key.LastUpdated);
-                    session?.LogInformation($"Wrokflow {workflow.ID} executing activity failed {ex.ToString()}");
+                    session?.LogError($"Wrokflow {workflow.ID} executing activity failed {ex.ToString()}");
                     throw new ActivityFailedException(ex.ToString());
                 } finally
                 {
