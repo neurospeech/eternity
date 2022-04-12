@@ -110,11 +110,11 @@ namespace NeuroSpeech.Eternity
                         return null;
                     var p = JsonSerializer.Deserialize<List<string?>>(Key, new JsonSerializerOptions { 
                     })!;
-                    int n = p.Count - 4;
+                    int n = p.Count - 3;
                     var pa = new string[n];
                     for (int i = 0; i < n; i++)
                     {
-                        pa[i] = p[i+4]!;
+                        pa[i] = p[i+3]!;
                     }
                     parameters = pa;
                 }
@@ -223,8 +223,8 @@ namespace NeuroSpeech.Eternity
         }
 
         private void SetKey(long ticks) {
-            var list = new List<string?>(4 + Parameters!.Length) {
-                this.ID,
+            var list = new List<string?>(3 + Parameters!.Length) {
+                // this.ID,
                 this.ActivityType.ToString(),
                 this.Method,
                 ticks.ToString(),
