@@ -91,6 +91,33 @@ namespace NeuroSpeech.Eternity
             return context.GetStatusAsync<TOutput>(id);
         }
 
+        public static WorkflowStatus<TOutput?>? Empty;
+
+        /// <summary>
+        /// Retrieve status of the workflow
+        /// </summary>
+        /// <param name="context"></param>
+        /// <param name="id"></param>
+        /// <returns>null if workflow not found</returns>
+        public static async Task<WorkflowStatus<TOutput?>> WaitForStatusAsync(EternityContext context, string id, int maxWaitMS = 5000)
+        {
+            var start = 0;
+            while(true)
+            {
+                await Task.Delay(250);
+                var result = await GetStatusAsync(context, id);
+                if (result == null)
+                    return Empty ??= new WorkflowStatus<TOutput?>();
+                if (result.Status == ActivityStatus.Completed || result.Status == ActivityStatus.Failed)
+                {
+                    return result;
+                }
+                start += 250;
+                if (start >= maxWaitMS)
+                    return Empty ??= new WorkflowStatus<TOutput?>();
+            }
+        }
+
         ///// <summary>
         ///// You can wait till given workflow finishes
         ///// </summary>
