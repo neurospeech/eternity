@@ -88,11 +88,13 @@ namespace NeuroSpeech.Eternity
             List<TableTransactionAction> actions = new List<TableTransactionAction>();
             while (true)
             {
-                await foreach (var step in client.QueryAsync<TableEntity>(filter, select: new string[] { }))
+                await foreach (var step in client.QueryAsync<TableEntity>(filter, select: new string[] { }, maxPerPage: 100))
                 {
                     actions.Add(new TableTransactionAction(TableTransactionActionType.Delete,
                         new TableEntity(step.PartitionKey, step.RowKey),
                         ETag.All));
+                    if (actions.Count == 100)
+                        break;
                 }
                 if (actions.Count == 0)
                     break;
