@@ -37,13 +37,15 @@ jobs:
       env:
          NUGET_SOURCE: ${{secrets.PROGET_NUGET}}
          NUGET_KEY: ${{secrets.PROGET_NUGET_TOKEN}}  
-    # - name: release
-    #  uses: actions/create-release@v1
-    #  id: create_release
-    #  with:
-    #    draft: false
-    #    prerelease: false
-    #    release_name: ${GitBuildVersionSimple}
-    #    tag_name: ${GitBuildVersionSimple}
-    #  env:
-    #    GITHUB_TOKEN: ${{ github.token }}         
+
+    - name: Create tag
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const { NBGV_SemVer2 } = process.env
+          github.rest.git.createRef({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            ref: `refs/tags/v${NBGV_SemVer2}`,
+            sha: context.sha
+          })    
