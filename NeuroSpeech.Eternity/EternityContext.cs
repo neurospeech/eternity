@@ -24,6 +24,8 @@ namespace NeuroSpeech.Eternity
         private CancellationTokenSource? waiter;
         private IEternityLogger? logger;
 
+        private WaitingTokens waitingTokens;
+
         /// <summary>
         /// Please turn on EmitAvailable on iOS
         /// </summary>
@@ -52,6 +54,7 @@ namespace NeuroSpeech.Eternity
                     new ValueTupleConverter()
                 }
             };
+            this.waitingTokens = new WaitingTokens(1);
         }
 
         private static ConcurrentDictionary<Type, Type> generatedTypes = new ConcurrentDictionary<Type, Type>();
@@ -175,6 +178,7 @@ namespace NeuroSpeech.Eternity
                 {
 
                 }
+                waitingTokens.Clear();
             }
         }
 
@@ -215,6 +219,7 @@ namespace NeuroSpeech.Eternity
                 {
 
                 }
+                waitingTokens.Clear();
             }
         }
 
@@ -248,6 +253,7 @@ namespace NeuroSpeech.Eternity
                 tasks[i] = ws.Queue(item.ID, item, RunWorkflowAsync);
             }
             await Task.WhenAll(tasks);
+            waitingTokens.Clear();
             return items.Length;
         }
 
@@ -466,21 +472,10 @@ namespace NeuroSpeech.Eternity
             // we need to change queue token here...
             key.QueueToken = await storage.QueueWorkflowAsync(new WorkflowQueueItem { ID = key.ID!, ETA = key.ETA }, key.QueueToken);
             await storage.UpdateAsync(key);
-            if (waitingTokens.TryGetValue(key.Key!, out var ct)) {
-                if (!ct.IsCancellationRequested)
-                {
-                    try
-                    {
-                        ct.Cancel();
-                    }
-                    catch { }
-                }
-            }
+            waitingTokens.Cancel(key.Key!);
             Trigger();
             session?.LogInformation($"Workflow {id} Queued successfully.");
         }
-
-        private static ConcurrentDictionary<string, CancellationTokenSource> waitingTokens = new ConcurrentDictionary<string, CancellationTokenSource>();
 
         internal async Task<(string? name, string? value)> WaitForExternalEventsAsync(
             IWorkflow workflow, 
@@ -517,13 +512,12 @@ namespace NeuroSpeech.Eternity
 
                 if (diff.TotalMilliseconds > 0)
                 {
-                    var tokenKey = $"{key.Key}";
-                    var token = waitingTokens.AddOrUpdate(tokenKey,
-                        (x) => new CancellationTokenSource(),
-                        (k, update) => new CancellationTokenSource());
+                    var tokenKey = key.Key!;
+                    var token = waitingTokens.Get(tokenKey);
                     try
                     {
-                        await Task.Delay(diff, token.Token);
+                        await Task.Delay(diff, token);
+                        waitingTokens.Cancel(tokenKey);
                     }
                     catch (TaskCanceledException) { }
                 }
@@ -531,6 +525,7 @@ namespace NeuroSpeech.Eternity
                 status = await GetActivityResultAsync(workflow, status);
                 if(status.Status != ActivityStatus.Completed && status.Status != ActivityStatus.Failed)
                 {
+
                     var timedout = new EventResult { };
                     status.Result = Serialize(timedout);
                     status.Status = ActivityStatus.Completed;
