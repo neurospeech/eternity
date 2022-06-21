@@ -64,7 +64,7 @@ namespace NeuroSpeech.Eternity.Tests
 
             var s = await ParentWorkflow.GetStatusAsync(context, id);
 
-            Assert.AreEqual(s.Status, ActivityStatus.Completed);
+            Assert.AreEqual(s.Status, EternityEntityState.Completed);
             Assert.AreEqual(s.Result, 8);
         }
 

@@ -41,7 +41,7 @@ namespace NeuroSpeech.Eternity
                 uk.Append(json);
                 uk.Append(',');
             }
-
+            @this.Parameters = inputJson;
             @this.ID = $"{id}{dt}-{name}-{uk}";
             return @this;
         }
@@ -77,6 +77,9 @@ namespace NeuroSpeech.Eternity
 
         public string? ParentID { get; set; }
 
+        public int Priority { get; set; }
+
+        public string? CurrentWaitingID { get; set; }
     }
 
     public enum EternityEntityState
@@ -89,11 +92,11 @@ namespace NeuroSpeech.Eternity
 
     public interface IEternityRepository
     {
-        Task<List<EternityEntity>> QueryAsync(int max);
+        Task<List<EternityEntity>> QueryAsync(int max, DateTime utcNow);
 
         Task<EternityEntity?> GetAsync(string? id);
 
-        Task<EternityEntity> SaveAsync(params EternityEntity[] entity);
+        Task SaveAsync(params EternityEntity[] entity);
 
         Task<string> CreateAsync(EternityEntity entity);
 

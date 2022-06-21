@@ -5,7 +5,7 @@ using System.Text;
 
 namespace NeuroSpeech.Eternity.Mocks
 {
-    public class MockEngine : MockEngine<MockStorage>
+    public class MockEngine : MockEngine<MockRepository>
     {
         public MockEngine(Action<IServiceCollection> builder = null)
             :base(builder)
@@ -17,14 +17,14 @@ namespace NeuroSpeech.Eternity.Mocks
             
         }
 
-        protected override MockStorage CreateStorage(MockClock clock)
+        protected override MockRepository CreateStorage(MockClock clock)
         {
-            return new MockStorage(clock);
+            return new MockRepository();
         }
     }
 
     public abstract class MockEngine<TStorage>: IDisposable
-        where TStorage: IEternityStorage
+        where TStorage: IEternityRepository
     {
 
         public MockEngine(Action<IServiceCollection> builder = null)
@@ -36,7 +36,7 @@ namespace NeuroSpeech.Eternity.Mocks
             ServiceCollection services = new ServiceCollection();
             services.AddSingleton<IEternityClock>(Clock);
             services.AddSingleton(Bag);
-            services.AddSingleton<IEternityStorage>(Storage);
+            services.AddSingleton<IEternityRepository>(Storage);
             services.AddSingleton<EternityServiceScopeFactory>();
             services.AddSingleton(EmailService);
             services.AddSingleton<EternityContext>();
