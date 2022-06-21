@@ -360,5 +360,68 @@ namespace NeuroSpeech.Eternity
             }
             throw new TimeoutException();
         }
+
+
+        internal async Task<(string? name, string? value)> WaitForExternalEventsAsync(
+            IWorkflow workflow,
+            string[] names,
+            DateTimeOffset eta)
+        {
+            using var session = this.logger.BeginLogSession();
+            session?.LogInformation($"Workflow {workflow.ID} waiting for an external event");
+            var key = ActivityStep.Event(workflow.ID, names, eta, workflow.CurrentUtc);
+
+            var status = await GetActivityResultAsync(workflow, key);
+
+            while (true)
+            {
+
+                switch (status.Status)
+                {
+                    case ActivityStatus.Completed:
+                        workflow.SetCurrentTime(status.LastUpdated);
+                        var er = status.AsResult<EventResult>(options)!;
+                        session?.LogInformation($"Workflow {workflow.ID} waiting for an external event finished {status.Result}");
+                        return (er.EventName, er.Value);
+                    case ActivityStatus.Failed:
+                        workflow.SetCurrentTime(status.LastUpdated);
+                        session?.LogInformation($"Workflow {workflow.ID} waiting for an external event failed {status.Error}");
+                        throw new ActivityFailedException(status.Error!);
+                }
+
+                var diff = status.ETA - clock.UtcNow;
+                if (diff.TotalSeconds > 15)
+                {
+                    throw new ActivitySuspendedException();
+                }
+
+                if (diff.TotalMilliseconds > 0)
+                {
+                    var tokenKey = key.Key!;
+                    var token = waitingTokens.Get(tokenKey);
+                    try
+                    {
+                        await Task.Delay(diff, token);
+                        waitingTokens.Cancel(tokenKey);
+                    }
+                    catch (TaskCanceledException) { }
+                }
+
+                status = await GetActivityResultAsync(workflow, status);
+                if (status.Status != ActivityStatus.Completed && status.Status != ActivityStatus.Failed)
+                {
+
+                    var timedout = new EventResult { };
+                    status.Result = Serialize(timedout);
+                    status.Status = ActivityStatus.Completed;
+                    status.LastUpdated = clock.UtcNow;
+                    workflow.SetCurrentTime(status.LastUpdated);
+                    await storage.UpdateAsync(status);
+                    if (status.QueueToken != null)
+                        await storage.RemoveQueueAsync(status.QueueToken);
+                    return (null, null);
+                }
+            }
+        }
     }
 }
