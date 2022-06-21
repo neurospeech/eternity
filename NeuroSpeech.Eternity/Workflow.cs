@@ -42,7 +42,7 @@ namespace NeuroSpeech.Eternity
         public static Task<string> CreateAsync(EternityContext context, WorkflowOptions<TInput> options)
         {
             context.GetDerived(typeof(TWorkflow));
-            return context.CreateAsync<TInput, TOutput>(typeof(TWorkflow), options);
+            return context.CreateAsync(typeof(TWorkflow), options);
         }
 
         /// <summary>
@@ -55,7 +55,7 @@ namespace NeuroSpeech.Eternity
         {
             // this will force verification..
             context.GetDerived(typeof(TWorkflow));
-            return context.CreateAsync<TInput, TOutput>(typeof(TWorkflow), new WorkflowOptions<TInput> { 
+            return context.CreateAsync(typeof(TWorkflow), new WorkflowOptions<TInput> { 
                 Input = input,
                 Description = description
             });
@@ -184,6 +184,7 @@ namespace NeuroSpeech.Eternity
         bool IWorkflow.IsActivityRunning { get => IsActivityRunning; set => IsActivityRunning = value; }
 
         IList<string> IWorkflow.QueueItemList { get; } = new List<string>();
+        EternityEntity IWorkflow.Entity { get; set; }
 
         public abstract Task<TOutput> RunAsync(TInput input);
 

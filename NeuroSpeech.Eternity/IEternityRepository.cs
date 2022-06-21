@@ -5,25 +5,16 @@ using System.Threading.Tasks;
 
 namespace NeuroSpeech.Eternity
 {
-    public class EternityContext2
-    {
-        private readonly IEternityClock clock;
 
-        public EternityContext2(IEternityClock clock)
+    public class EternityEntity
+    {
+        internal EternityEntity(string id, string name, params string[] parameters)
         {
-            this.clock = clock;
+            this.ID = id;
+            this.Name = name;
+            this.Parameters = parameters;
         }
 
-        internal Task CreateAsync(IWorkflow workflow)
-        {
-            throw new Exception();
-        }
-
-        
-    }
-
-    public interface IEternityEntity
-    {
         /// <summary>
         /// Entity Identifier, Must be unique
         /// </summary>
@@ -32,11 +23,7 @@ namespace NeuroSpeech.Eternity
         /// <summary>
         /// Sort Order, in Ascending order, first in first out
         /// </summary>
-        public string SortOrder { get; set; }
-
-        public TimeSpan? KeepAlive { get; set; }
-
-        public TimeSpan? KeepAliveWhenFailed { get; set; }
+        public string? SortOrder { get; set; }
 
         /// <summary>
         /// ClrType of the Root Workflow
@@ -45,7 +32,7 @@ namespace NeuroSpeech.Eternity
         /// </summary>
         public string Name { get; set; }
 
-        public object[] Parameters { get; set; }
+        public string[] Parameters { get; set; }
 
         public DateTime UtcETA { get; set; }
 
@@ -64,32 +51,35 @@ namespace NeuroSpeech.Eternity
     public enum EternityEntityState
     {
         None,
+        Suspended,
         Failed,
         Completed
     }
 
     public interface IEternityRepository
     {
+        Task<List<EternityEntity>> QueryAsync(int max);
 
+        Task<EternityEntity?> GetAsync(string? id);
 
-        Task<IEternityEntity> GetAsync(string? id);
+        Task<EternityEntity> SaveAsync(EternityEntity entity);
 
-        Task<IEternityEntity> SaveAsync(IEternityEntity entity);
+        Task<string> CreateAsync(EternityEntity entity);
 
-        Task LockAsync(IEternityEntity entity, TimeSpan maxTTL);
+        Task<IAsyncDisposable> LockAsync(EternityEntity entity, TimeSpan maxTTL);
 
         /// <summary>
         /// Deletes the entity and all its children
         /// </summary>
         /// <param name="entity"></param>
         /// <returns></returns>
-        Task DeleteAsync(IEternityEntity entity);
+        Task DeleteAsync(EternityEntity entity);
 
         /// <summary>
         /// Deletes all children of given entity
         /// </summary>
         /// <param name="entity"></param>
         /// <returns></returns>
-        Task DeleteChildren(IEternityEntity entity);
+        Task DeleteChildrenAsync(EternityEntity entity);
     }
 }

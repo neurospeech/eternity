@@ -9,6 +9,8 @@ namespace NeuroSpeech.Eternity
     {
         EternityContext Context { get; }
 
+        EternityEntity Entity { get; set; }
+
         void Init(string id, EternityContext context, DateTimeOffset start, bool generated);
         void SetCurrentTime(DateTimeOffset time);
 
