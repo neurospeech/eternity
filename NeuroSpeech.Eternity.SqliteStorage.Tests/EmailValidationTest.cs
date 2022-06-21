@@ -60,7 +60,9 @@ namespace NeuroSpeech.Eternity.SqliteStorage.Tests
         [TestMethod]
         public async Task VerifyAsync()
         {
-            using var engine = new MockSqliteEngine();
+            using var engine = new MockSqliteEngine((s) => {
+                s.AddSingleton<IEternityLogger, DiagnosticsLogger>();
+            });
             var emailService = engine.EmailService;
             var context = engine.Resolve<EternityContext>();
 
@@ -83,11 +85,11 @@ namespace NeuroSpeech.Eternity.SqliteStorage.Tests
 
             await context.ProcessMessagesOnceAsync();
 
-            var status = await engine.Storage.GetWorkflowAsync(id);
+            var status = await engine.Storage.GetAsync(id);
 
-            Assert.AreEqual(status.Status, ActivityStatus.Completed);
+            Assert.AreEqual(status.State, Storage.EternityEntityState.Completed);
 
-            Assert.AreEqual(status.Result, "\"Verified\"");
+            Assert.AreEqual(status.Response, "\"Verified\"");
 
             // Assert.AreEqual(0, engine.Storage.QueueSize);
         }
@@ -135,11 +137,11 @@ namespace NeuroSpeech.Eternity.SqliteStorage.Tests
 
             await context.ProcessMessagesOnceAsync();
 
-            var status = await engine.Storage.GetWorkflowAsync(id);
+            var status = await engine.Storage.GetAsync(id);
 
-            Assert.AreEqual(status.Status, ActivityStatus.Completed);
+            Assert.AreEqual(status.State, Storage.EternityEntityState.Completed);
 
-            Assert.AreEqual(status.Result, "\"Verified\"");
+            Assert.AreEqual(status.Response , "\"Verified\"");
 
             // Assert.AreEqual(0, engine.Storage.QueueSize);
 
@@ -176,11 +178,11 @@ namespace NeuroSpeech.Eternity.SqliteStorage.Tests
 
             await context.ProcessMessagesOnceAsync();
 
-            var status = await engine.Storage.GetWorkflowAsync(id);
+            var status = await engine.Storage.GetAsync(id);
 
-            Assert.AreEqual(status.Status, ActivityStatus.Completed);
+            Assert.AreEqual(status.State, Storage.EternityEntityState.Completed);
 
-            Assert.AreEqual(status.Result, "\"NotVerified\"");
+            Assert.AreEqual(status.Response, "\"NotVerified\"");
 
             // Assert.AreEqual(0, engine.Storage.QueueSize);
 

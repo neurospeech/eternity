@@ -1,4 +1,5 @@
-﻿using System;
+﻿using NeuroSpeech.Eternity.Storage;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -92,13 +93,13 @@ namespace NeuroSpeech.Eternity
             return m;
         }
 
-        public async Task<List<EternityEntity>> QueryAsync(int max, DateTime utcNow)
+        public async Task<List<EternityEntity>> QueryAsync(int max, DateTimeOffset utcNow)
         {
             await Task.Delay(10);
             var result = new List<EternityEntity>();
             foreach(var item in db.ToList())
             {
-                if (item.Value.UtcETA <= utcNow)
+                if (item.Value.IsWorkflow && item.Value.UtcETA <= utcNow)
                 {
                     result.Add(item.Value);
                 }

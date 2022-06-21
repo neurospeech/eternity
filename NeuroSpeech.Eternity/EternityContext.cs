@@ -1,4 +1,5 @@
 ﻿using NeuroSpeech.Eternity.Converters;
+using NeuroSpeech.Eternity.Storage;
 using System;
 using System.Collections.Concurrent;
 using System.ComponentModel;
@@ -11,6 +12,7 @@ using System.Threading.Tasks;
 
 namespace NeuroSpeech.Eternity
 {
+
     public class EternityContext
     {
         private readonly IServiceProvider services;
@@ -88,8 +90,8 @@ namespace NeuroSpeech.Eternity
             var now = clock.UtcNow;
             var eta = options.ETA ?? now;
             var entity = new EternityEntity(id, type.AssemblyQualifiedName, Serialize(options.Input));
-            entity.UtcETA = eta.UtcDateTime;
-            entity.UtcCreated = now.UtcDateTime;
+            entity.UtcETA = eta;
+            entity.UtcCreated = now;
             entity.UtcUpdated = entity.UtcCreated;
             var existing = await repository.GetAsync(id);
             if (existing != null)
@@ -145,7 +147,7 @@ namespace NeuroSpeech.Eternity
             {
                 await previous;
             }
-            var items = await repository.QueryAsync(maxActivitiesToProcess, clock.UtcNow.UtcDateTime);
+            var items = await repository.QueryAsync(maxActivitiesToProcess, clock.UtcNow);
             if (items.Count == 0)
                 return items.Count;
             using var ws = new WorkflowScheduler<EternityEntity>(cancellationToken);
@@ -194,12 +196,13 @@ namespace NeuroSpeech.Eternity
 
                 try
                 {
-                    var input = JsonSerializer.Deserialize(entity.Parameters[0], instance.InputType, options);
+                    var input = JsonSerializer.Deserialize(entity.Input ?? "null", instance.InputType, options);
                     var result = await instance.RunAsync(input!);
                     entity.Response = JsonSerializer.Serialize(result, options);
-                    entity.UtcUpdated = clock.UtcNow.UtcDateTime;
+                    entity.UtcUpdated = clock.UtcNow;
                     entity.State = EternityEntityState.Completed;
-                    entity.UtcETA = clock.UtcNow.Add(instance.PreserveTime).UtcDateTime;
+                    entity.UtcETA = clock.UtcNow.Add(instance.PreserveTime);
+                    entity.Priority = -1;
                     session?.LogInformation($"Workflow {entity.ID} completed.");
                 }
                 catch (ActivitySuspendedException)
@@ -213,8 +216,9 @@ namespace NeuroSpeech.Eternity
                 {
                     entity.Response = ex.ToString();
                     entity.State = EternityEntityState.Failed;
-                    entity.UtcUpdated = clock.UtcNow.UtcDateTime;
-                    entity.UtcETA = clock.UtcNow.Add(instance.PreserveTime).UtcDateTime;
+                    entity.UtcUpdated = clock.UtcNow;
+                    entity.UtcETA = clock.UtcNow.Add(instance.PreserveTime);
+                    entity.Priority = -1;
                     session?.LogInformation($"Workflow {entity.ID} failed. {ex.ToString()}");
                 }
                 if (entity.ParentID != null)
@@ -228,7 +232,7 @@ namespace NeuroSpeech.Eternity
                     var parent = await repository.GetAsync(entity.ParentID);
                     if (parent != null)
                     {
-                        parent.UtcETA = clock.UtcNow.UtcDateTime;
+                        parent.UtcETA = clock.UtcNow;
                         await repository.SaveAsync(entity, parent);
                         return;
                     }
@@ -244,7 +248,7 @@ namespace NeuroSpeech.Eternity
         internal async Task Delay(IWorkflow workflow, string id, DateTimeOffset timeout)
         {
 
-            var key = CreateEntity(workflow.ID, "Delay", true, Empty, timeout, workflow.CurrentUtc);
+            var key = CreateEntity(workflow, "Delay", true, Empty, timeout, workflow.CurrentUtc);
             var status = await repository.GetAsync(key.ID);
 
             switch (status?.State)
@@ -265,7 +269,7 @@ namespace NeuroSpeech.Eternity
                 // this was in the past...
                 key.State = EternityEntityState.Completed;
                 key.Response = "null";
-                key.UtcUpdated = utcNow.UtcDateTime;
+                key.UtcUpdated = utcNow;
                 entity.UtcUpdated = key.UtcUpdated;
                 await repository.SaveAsync(key, entity);
                 return;
@@ -282,7 +286,7 @@ namespace NeuroSpeech.Eternity
 
             key.State = EternityEntityState.Completed;
             key.Response = "null";
-            key.UtcUpdated = clock.UtcNow.UtcDateTime;
+            key.UtcUpdated = clock.UtcNow;
             workflow.SetCurrentTime(key.UtcUpdated);
             entity.UtcUpdated = key.UtcUpdated;
             await repository.SaveAsync(entity, key);
@@ -320,7 +324,7 @@ namespace NeuroSpeech.Eternity
             {
                 // something wrong...
             }
-            existing.UtcUpdated = clock.UtcNow.UtcDateTime;
+            existing.UtcUpdated = clock.UtcNow;
             existing.State = EternityEntityState.Completed;
             // existing.UtcETA = existing.UtcUpdated;
             existing.Response = Serialize(new EventResult { 
@@ -334,14 +338,14 @@ namespace NeuroSpeech.Eternity
         }
         
         private EternityEntity CreateEntity(
-            string ID,
+            IWorkflow workflow,
             string name,
             bool uniqueParameters,
             object?[] parameters,
             DateTimeOffset eta,
             DateTimeOffset workflowUtcNow)
         {
-            return EternityEntity.From(ID, name, uniqueParameters, parameters, eta, workflowUtcNow, options);
+            return EternityEntity.From(workflow.ID, name, uniqueParameters, parameters, eta, workflowUtcNow, options);
         }
 
         [EditorBrowsable(EditorBrowsableState.Never)]
@@ -362,7 +366,7 @@ namespace NeuroSpeech.Eternity
             }
             using var session = this.logger?.BeginLogSession();
 
-            var activityEntity = CreateEntity(ID, methodName, uniqueParameters, input, after, workflow.CurrentUtc);
+            var activityEntity = CreateEntity(workflow, methodName, uniqueParameters, input, after, workflow.CurrentUtc);
 
             while (true)
             {
@@ -433,7 +437,7 @@ namespace NeuroSpeech.Eternity
 
                 key.Response = result;
                 key.State = EternityEntityState.Completed;
-                var now = clock.UtcNow.UtcDateTime;
+                var now = clock.UtcNow;
                 key.UtcUpdated = now;
                 key.UtcCreated = now;
                 key.UtcETA = now;
@@ -446,7 +450,7 @@ namespace NeuroSpeech.Eternity
             }
             catch (Exception ex) when (!(ex is ActivitySuspendedException))
             {
-                var now = clock.UtcNow.UtcDateTime;
+                var now = clock.UtcNow;
                 key.Response = ex.ToString();
                 key.State = EternityEntityState.Failed;
                 key.UtcUpdated = now;
@@ -501,8 +505,8 @@ namespace NeuroSpeech.Eternity
             var eta = input.ETA ?? utcNow;
             var id = $"{workflow.ID}-{childType.AssemblyQualifiedName}";
             var key = new EternityEntity(id, childType.AssemblyQualifiedName, Serialize(input.Input));
-            key.UtcETA = eta.UtcDateTime;
-            key.UtcCreated = utcNow.UtcDateTime;
+            key.UtcETA = eta;
+            key.UtcCreated = utcNow;
             key.UtcUpdated = key.UtcCreated;
             key.ParentID = workflow.ID;
 
@@ -537,13 +541,14 @@ namespace NeuroSpeech.Eternity
 
             using var session = this.logger.BeginLogSession();
             session?.LogInformation($"Workflow {workflow.ID} waiting for an external event");
-            var activity = CreateEntity(workflow.ID, nameof(WaitForExternalEventsAsync), false, Empty, eta, workflow.CurrentUtc);
+            var activity = CreateEntity(workflow, nameof(WaitForExternalEventsAsync), false, Empty, eta, workflow.CurrentUtc);
 
             var activityId = activity.ID;
-            workflowEntity.UtcETA = eta.UtcDateTime;
+            workflowEntity.UtcETA = eta;
             var result = await repository.GetAsync(activityId);
             if (result == null)
             {
+                workflowEntity.CurrentWaitingID = activityId;
                 await repository.SaveAsync(activity, workflowEntity);
             }
 
@@ -593,7 +598,7 @@ namespace NeuroSpeech.Eternity
                     var timedout = new EventResult { };
                     activity.Response = Serialize(timedout);
                     activity.State = EternityEntityState.Completed;
-                    activity.UtcUpdated = clock.UtcNow.UtcDateTime;
+                    activity.UtcUpdated = clock.UtcNow;
                     workflow.SetCurrentTime(activity.UtcUpdated);
                     workflowEntity.UtcUpdated = activity.UtcUpdated;
                     workflowEntity.UtcETA = activity.UtcUpdated;
@@ -605,8 +610,8 @@ namespace NeuroSpeech.Eternity
 
         private async Task SaveWorkflow(EternityEntity workflowEntity, DateTimeOffset eta)
         {
-            workflowEntity.UtcETA = eta.UtcDateTime;
-            workflowEntity.UtcUpdated = clock.UtcNow.UtcDateTime;
+            workflowEntity.UtcETA = eta;
+            workflowEntity.UtcUpdated = clock.UtcNow;
             await repository.SaveAsync(workflowEntity);
         }
     }
