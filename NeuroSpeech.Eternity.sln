@@ -20,11 +20,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NeuroSpeech.Eternity.SqliteStorage", "NeuroSpeech.Eternity.SqliteStorage\NeuroSpeech.Eternity.SqliteStorage.csproj", "{ACDDD68E-0813-408E-9326-D3CCBD24688D}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NeuroSpeech.Eternity.SqlStorage", "NeuroSpeech.Eternity.SqlStorage\NeuroSpeech.Eternity.SqlStorage.csproj", "{6BB187D6-EB15-40E0-AB09-37FD6F275859}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NeuroSpeech.Eternity.SqliteStorage.Tests", "NeuroSpeech.Eternity.SqliteStorage.Tests\NeuroSpeech.Eternity.SqliteStorage.Tests.csproj", "{0CCDD6B8-80D8-4FC0-B6E2-54A0F5469CAF}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NeuroSpeech.Eternity.DependencyInjectionExtensions", "NeuroSpeech.Eternity.DependencyInjectionExtensions\NeuroSpeech.Eternity.DependencyInjectionExtensions.csproj", "{5200E2F8-58F8-4C67-B8DE-4418DF6746F3}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NeuroSpeech.Eternity.DbStorage", "NeuroSpeech.Eternity.DbStorage\NeuroSpeech.Eternity.DbStorage.csproj", "{3EB13FEC-6BCF-4AB1-88BE-71EBFF129925}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NeuroSpeech.Eternity.SqlStorage", "NeuroSpeech.Eternity.SqlStorage\NeuroSpeech.Eternity.SqlStorage.csproj", "{12FA8981-C387-481C-8EB7-85B43FCF623D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -52,10 +54,6 @@ Global
 		{ACDDD68E-0813-408E-9326-D3CCBD24688D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{ACDDD68E-0813-408E-9326-D3CCBD24688D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{ACDDD68E-0813-408E-9326-D3CCBD24688D}.Release|Any CPU.Build.0 = Release|Any CPU
-		{6BB187D6-EB15-40E0-AB09-37FD6F275859}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{6BB187D6-EB15-40E0-AB09-37FD6F275859}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{6BB187D6-EB15-40E0-AB09-37FD6F275859}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{6BB187D6-EB15-40E0-AB09-37FD6F275859}.Release|Any CPU.Build.0 = Release|Any CPU
 		{0CCDD6B8-80D8-4FC0-B6E2-54A0F5469CAF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{0CCDD6B8-80D8-4FC0-B6E2-54A0F5469CAF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0CCDD6B8-80D8-4FC0-B6E2-54A0F5469CAF}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -64,6 +62,14 @@ Global
 		{5200E2F8-58F8-4C67-B8DE-4418DF6746F3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5200E2F8-58F8-4C67-B8DE-4418DF6746F3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5200E2F8-58F8-4C67-B8DE-4418DF6746F3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3EB13FEC-6BCF-4AB1-88BE-71EBFF129925}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3EB13FEC-6BCF-4AB1-88BE-71EBFF129925}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3EB13FEC-6BCF-4AB1-88BE-71EBFF129925}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3EB13FEC-6BCF-4AB1-88BE-71EBFF129925}.Release|Any CPU.Build.0 = Release|Any CPU
+		{12FA8981-C387-481C-8EB7-85B43FCF623D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{12FA8981-C387-481C-8EB7-85B43FCF623D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{12FA8981-C387-481C-8EB7-85B43FCF623D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{12FA8981-C387-481C-8EB7-85B43FCF623D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
