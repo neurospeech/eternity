@@ -92,6 +92,30 @@ namespace NeuroSpeech.Eternity
                 JsonSerializer.Serialize(options.Input, this.options)));
         }
 
+        internal async Task<WorkflowStatus<T?>?> GetStatusAsync<T>(string id)
+        {
+            var result = await repository.GetAsync(id);
+            if (result == null)
+            {
+                return null;
+            }
+            var status = new WorkflowStatus<T?> { 
+                Status = result.State,
+                DateCreated = result.UtcCreated,
+                LastUpdate = result.UtcUpdated
+            };
+            switch (result.State)
+            {
+                case EternityEntityState.Completed:
+                    status.Result = Deserialize<T?>(result.Response);
+                    break;
+                case EternityEntityState.Failed:
+                    status.Error = result.Response;
+                    break;
+            }
+            return status;
+        }
+
         private Task<int>? previousTask = null;
 
         public Task<int> ProcessMessagesOnceAsync(int maxActivitiesToProcess = 100, CancellationToken cancellationToken = default)
@@ -197,9 +221,83 @@ namespace NeuroSpeech.Eternity
             }
         }
 
-        private Task RaiseEventAsync(string parentID, string v1, string v2)
+        internal async Task Delay(IWorkflow workflow, string id, DateTimeOffset timeout)
         {
-            throw new NotImplementedException();
+
+            var key = CreateEntity(workflow.ID, "Delay", true, Empty, timeout);
+            var status = await repository.GetAsync(key.ID);
+
+            switch (status?.State)
+            {
+                case EternityEntityState.Completed:
+                    workflow.SetCurrentTime(status.UtcUpdated);
+                    return;
+                case EternityEntityState.Failed:
+                    workflow.SetCurrentTime(status.UtcUpdated);
+                    throw new ActivityFailedException(status.Response!);
+            }
+
+            var entity = workflow.Entity;
+
+            var utcNow = clock.UtcNow;
+            if (timeout <= utcNow)
+            {
+                // this was in the past...
+                key.State = EternityEntityState.Completed;
+                key.Response = "null";
+                key.UtcUpdated = utcNow.UtcDateTime;
+                entity.UtcUpdated = key.UtcUpdated;
+                await repository.SaveAsync(key, entity);
+                return;
+            }
+
+            var diff = timeout - utcNow;
+            if (diff.TotalSeconds > 15)
+            {
+                await SaveWorkflow(entity, timeout);
+                throw new ActivitySuspendedException();
+            }
+
+            await Task.Delay(diff, Cancellation);
+
+            key.State = EternityEntityState.Completed;
+            key.Response = "null";
+            key.UtcUpdated = clock.UtcNow.UtcDateTime;
+            workflow.SetCurrentTime(key.UtcUpdated);
+            entity.UtcUpdated = key.UtcUpdated;
+            await repository.SaveAsync(entity, key);
+        }
+
+        public async Task RaiseEventAsync(string id, string name, string result, bool throwIfNotFound = false)
+        {
+            var entity = CreateEntity(id, nameof(WaitForExternalEventsAsync), true, Empty, clock.UtcNow);
+            var existing = await repository.GetAsync(entity.ID);
+            if (existing == null) {
+                if (throwIfNotFound)
+                {
+
+                }
+            }
+            if (existing.State == EternityEntityState.Failed || existing.State == EternityEntityState.Completed)
+            {
+                // something wrong...
+            }
+            existing ??= entity;
+            existing.UtcUpdated = clock.UtcNow.UtcDateTime;
+            existing.UtcETA = existing.UtcUpdated;
+            existing.Response = Serialize(new EventResult { 
+                EventName = name,
+                Value = result
+            });
+
+            var workflowEntity = await repository.GetAsync(id);
+            workflowEntity.UtcETA = existing.UtcETA;
+            await repository.SaveAsync(workflowEntity, existing);
+        }
+        
+        private EternityEntity CreateEntity(string ID, string name, bool uniqueParameters, object?[] parameters, DateTimeOffset eta)
+        {
+            return EternityEntity.From(ID, name, uniqueParameters, parameters, eta, clock.UtcNow, options);
         }
 
         [EditorBrowsable(EditorBrowsableState.Never)]
@@ -220,20 +318,7 @@ namespace NeuroSpeech.Eternity
             }
             using var session = this.logger?.BeginLogSession();
 
-            var dt = uniqueParameters ? "" : $"-{clock.UtcNow.Ticks}";
-
-            var inputJson = new string[input.Length];
-            var uk = new StringBuilder();
-            for (int i = 0; i < input.Length; i++)
-            {
-                var json = JsonSerializer.Serialize(input[i], options);
-                inputJson[i] = json;
-                uk.Append(json);
-                uk.Append(',');
-            }
-
-            var activityID = $"{workflow.ID}{dt}-{method.Name}-{uk}";
-
+            var activityEntity = CreateEntity(ID, methodName, uniqueParameters, input, after);
 
             while (true)
             {
@@ -242,7 +327,7 @@ namespace NeuroSpeech.Eternity
                 await using var entityLock = await repository.LockAsync(entity, MaxLock);
 
                 // has result...
-                var task = await repository.GetAsync(activityID);
+                var task = await repository.GetAsync(activityEntity.ID);
 
                 switch (task?.State)
                 {
@@ -260,8 +345,7 @@ namespace NeuroSpeech.Eternity
                 var diff = after - clock.UtcNow;
                 if (diff.TotalMilliseconds > 0)
                 {
-                    entity.UtcETA = after.UtcDateTime;
-                    await repository.SaveAsync(entity);
+                    await SaveWorkflow(entity, after);
 
                     if (diff.TotalSeconds > 15)
                     {
@@ -271,21 +355,21 @@ namespace NeuroSpeech.Eternity
                     await Task.Delay(diff, this.Cancellation);
                 }
 
-                await RunActivityAsync(workflow, activityID, method, input, inputJson);
+                await RunActivityAsync(workflow, activityEntity, method, input);
             }
 
 
         }
 
-        internal async Task RunActivityAsync(IWorkflow workflow, string acivityID, MethodInfo method, object?[] parameters, string[] inputJson)
+        internal async Task RunActivityAsync(
+            IWorkflow workflow,
+            EternityEntity key, MethodInfo method, object?[] parameters)
         {
             using var session = this.logger.BeginLogSession();
 
             session?.LogInformation($"Wrokflow {workflow.ID} executing activity {method.Name}");
 
             var type = this.EmitAvailable ? workflow.GetType().BaseType : workflow.GetType();
-
-            var key = new EternityEntity(acivityID, method.Name, inputJson);
 
 
             try
@@ -332,96 +416,125 @@ namespace NeuroSpeech.Eternity
             }
         }
 
+        private string Serialize<T>(T model)
+        {
+            return JsonSerializer.Serialize<T>(model, this.options);
+        }
+
+        private T Deserialize<T>(string? response)
+        {
+            if (string.IsNullOrEmpty(response))
+                return default!;
+            return JsonSerializer.Deserialize<T>(response, this.options)!;
+        }
 
         internal async Task<TOutput?> ChildAsync<TInput, TOutput>(
             IWorkflow workflow, Type childType, WorkflowOptions<TInput> input)
         {
             var utcNow = clock.UtcNow;
             input.ETA ??= utcNow;
-            var key = ActivityStep.Child(workflow.ID, childType, input.Input!, input.ETA.Value, utcNow, options);
-            var status = await GetActivityResultAsync(workflow, key, async t => {
-                input.ParentID = workflow.ID;
-                t.Result = await this.CreateAsync<TInput, TOutput>(childType, input);
-                t.Status = ActivityStatus.Completed;
-                await storage.UpdateAsync(t);
-                return t;
-            });
+            var id = input.ID ?? Guid.NewGuid().ToString("N");
+            var key = CreateEntity(id, childType.AssemblyQualifiedName, true, new object?[] { input.Input }, utcNow);
+            key.ParentID = workflow.ID;
 
             // now wait for event..
-            var r = await this.WaitForExternalEventsAsync(workflow, new string[] { status.Result! }, utcNow.AddDays(1));
-            if (r.name == status.Result)
+            var r = await this.WaitForExternalEventsAsync(workflow, new string[] { key.Name }, utcNow.AddDays(1));
+            if (r.name == "Child")
             {
-                var ws = await storage.GetWorkflowAsync(r.name!);
-                if (ws.Status == ActivityStatus.Failed)
+                var ws = await repository.GetAsync(key.ID);
+                if (ws == null || ws.State == EternityEntityState.Failed)
                 {
-                    throw new ActivityFailedException(ws.Error!);
+                    throw new ActivityFailedException(ws?.Response ?? "Unknown Error");
                 }
-                return ws.AsResult<TOutput?>(options);
+                return Deserialize<TOutput?>(ws.Response);
             }
             throw new TimeoutException();
         }
 
+        private static readonly object[] Empty = new object[] { };
 
         internal async Task<(string? name, string? value)> WaitForExternalEventsAsync(
             IWorkflow workflow,
             string[] names,
             DateTimeOffset eta)
         {
+            var workflowEntity = workflow.Entity;
+
             using var session = this.logger.BeginLogSession();
             session?.LogInformation($"Workflow {workflow.ID} waiting for an external event");
-            var key = ActivityStep.Event(workflow.ID, names, eta, workflow.CurrentUtc);
+            var activity = CreateEntity(workflow.ID, nameof(WaitForExternalEventsAsync), true, Empty, eta);
 
-            var status = await GetActivityResultAsync(workflow, key);
+            var activityId = activity.ID;
+            workflowEntity.UtcETA = eta.UtcDateTime;
+            var result = await repository.GetAsync(activityId);
+            if (result != null && result.UtcETA != eta)
+            {
+                // lets save copy..
+                var copy = CreateEntity(workflow.ID, nameof(WaitForExternalEventsAsync) + result.UtcETA, true, Empty, result.UtcETA);
+                result.ID = copy.ID;
+                await repository.SaveAsync(result, activity, workflowEntity);
+            } else
+            {
+                await repository.SaveAsync(activity, workflowEntity);
+            }
 
             while (true)
             {
-
-                switch (status.Status)
+                result = await repository.GetAsync(activityId);
+                if (result == null)
                 {
-                    case ActivityStatus.Completed:
-                        workflow.SetCurrentTime(status.LastUpdated);
-                        var er = status.AsResult<EventResult>(options)!;
-                        session?.LogInformation($"Workflow {workflow.ID} waiting for an external event finished {status.Result}");
-                        return (er.EventName, er.Value);
-                    case ActivityStatus.Failed:
-                        workflow.SetCurrentTime(status.LastUpdated);
-                        session?.LogInformation($"Workflow {workflow.ID} waiting for an external event failed {status.Error}");
-                        throw new ActivityFailedException(status.Error!);
+                    throw new InvalidOperationException($"Waiting Activity disposed");
                 }
 
-                var diff = status.ETA - clock.UtcNow;
+                switch (result.State)
+                {
+                    case EternityEntityState.Completed:
+                        workflow.SetCurrentTime(result.UtcUpdated);
+                        await SaveWorkflow(workflowEntity, eta);
+                        var er = Deserialize<EventResult>(result.Response)!;
+                        session?.LogInformation($"Workflow {workflow.ID} waiting for an external event finished {result.Response}");
+                        return (er.EventName, er.Value);
+                    case EternityEntityState.Failed:
+                        workflow.SetCurrentTime(result.UtcUpdated);
+                        await SaveWorkflow(workflowEntity, eta);
+                        session?.LogInformation($"Workflow {workflow.ID} waiting for an external event failed {result.Response}");
+                        throw new ActivityFailedException(result.Response!);
+                }
+
+                var diff = eta - clock.UtcNow;
                 if (diff.TotalSeconds > 15)
                 {
+                    await SaveWorkflow(workflowEntity, eta);
                     throw new ActivitySuspendedException();
                 }
 
                 if (diff.TotalMilliseconds > 0)
                 {
-                    var tokenKey = key.Key!;
-                    var token = waitingTokens.Get(tokenKey);
-                    try
-                    {
-                        await Task.Delay(diff, token);
-                        waitingTokens.Cancel(tokenKey);
-                    }
-                    catch (TaskCanceledException) { }
+                    await Task.Delay(diff, this.Cancellation);
                 }
 
-                status = await GetActivityResultAsync(workflow, status);
-                if (status.Status != ActivityStatus.Completed && status.Status != ActivityStatus.Failed)
+                result = await repository.GetAsync(activityId);
+                if (result == null || (result.State != EternityEntityState.Completed && result.State != EternityEntityState.Failed))
                 {
 
                     var timedout = new EventResult { };
-                    status.Result = Serialize(timedout);
-                    status.Status = ActivityStatus.Completed;
-                    status.LastUpdated = clock.UtcNow;
-                    workflow.SetCurrentTime(status.LastUpdated);
-                    await storage.UpdateAsync(status);
-                    if (status.QueueToken != null)
-                        await storage.RemoveQueueAsync(status.QueueToken);
+                    activity.Response = Serialize(timedout);
+                    activity.State = EternityEntityState.Completed;
+                    activity.UtcUpdated = clock.UtcNow.UtcDateTime;
+                    workflow.SetCurrentTime(activity.UtcUpdated);
+                    workflowEntity.UtcUpdated = activity.UtcUpdated;
+                    workflowEntity.UtcETA = activity.UtcETA;
+                    await repository.SaveAsync(activity, workflowEntity);
                     return (null, null);
                 }
             }
+        }
+
+        private async Task SaveWorkflow(EternityEntity workflowEntity, DateTimeOffset eta)
+        {
+            workflowEntity.UtcETA = eta.UtcDateTime;
+            workflowEntity.UtcUpdated = clock.UtcNow.UtcDateTime;
+            await repository.SaveAsync(workflowEntity);
         }
     }
 }

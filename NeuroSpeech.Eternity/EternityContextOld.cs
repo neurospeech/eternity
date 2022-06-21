@@ -114,7 +114,7 @@ namespace NeuroSpeech.Eternity
                 return null;
             var status = new WorkflowStatus<T?>
             {
-                Status = wf.Status,
+                // Status = wf.Status,
                 DateCreated = wf.DateCreated,
                 LastUpdate = wf.LastUpdated
             };

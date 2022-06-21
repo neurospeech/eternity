@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace NeuroSpeech.Eternity
@@ -13,6 +14,36 @@ namespace NeuroSpeech.Eternity
             this.ID = id;
             this.Name = name;
             this.Parameters = parameters;
+        }
+
+        internal static EternityEntity From(
+            string id,
+            string name,
+            bool uniqueParameters,
+            object?[] parameters,
+            DateTimeOffset eta,
+            DateTimeOffset now,
+            JsonSerializerOptions options)
+        {
+            var @this = new EternityEntity(id, name);
+            @this.Name = name;
+            @this.UtcETA = eta.UtcDateTime;
+            @this.UtcUpdated = @this.UtcCreated = now.UtcDateTime;
+
+            var dt = uniqueParameters ? "" : $"-{now.Ticks}";
+
+            var inputJson = new string[parameters.Length];
+            var uk = new StringBuilder();
+            for (int i = 0; i < parameters.Length; i++)
+            {
+                var json = JsonSerializer.Serialize(parameters[i], options);
+                inputJson[i] = json;
+                uk.Append(json);
+                uk.Append(',');
+            }
+
+            @this.ID = $"{id}{dt}-{name}-{uk}";
+            return @this;
         }
 
         /// <summary>
@@ -62,7 +93,7 @@ namespace NeuroSpeech.Eternity
 
         Task<EternityEntity?> GetAsync(string? id);
 
-        Task<EternityEntity> SaveAsync(EternityEntity entity);
+        Task<EternityEntity> SaveAsync(params EternityEntity[] entity);
 
         Task<string> CreateAsync(EternityEntity entity);
 

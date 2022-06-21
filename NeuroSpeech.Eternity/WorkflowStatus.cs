@@ -4,7 +4,7 @@ namespace NeuroSpeech.Eternity
 {
     public class WorkflowStatus<T>
     {
-        public ActivityStatus Status { get; set; }
+        public EternityEntityState Status { get; set; }
 
         public T? Result { get; set; }
 

@@ -108,7 +108,7 @@ namespace NeuroSpeech.Eternity
                 var result = await GetStatusAsync(context, id);
                 if (result == null)
                     return Empty ??= new WorkflowStatus<TOutput?>();
-                if (result.Status == ActivityStatus.Completed || result.Status == ActivityStatus.Failed)
+                if (result.Status == EternityEntityState.Completed || result.Status == EternityEntityState.Failed)
                 {
                     return result;
                 }
