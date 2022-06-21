@@ -13,32 +13,41 @@ namespace NeuroSpeech.Eternity
         {
             // create workflows table..
             var createScript = TemplateQuery.New(@$"
-    IF object_id('MyTable') is null
-    CREATE TABLE EternityEntities (
-        ID TEXT PRIMARY KEY,
-        Name TEXT NOT NULL,
-        Input TEXT,
-        IsWorkflow BOOLEAN,
-        UtcETA INTEGER NOT NULL,
-        UtcCreated INTEGER NOT NULL,
-        UtcUpdated INTEGER NOT NULL,
-        Response TEXT,
-        State TEXT,
-        ParentID TEXT,
-        Priority INTEGER,
-        CurrentWaitingID TEXT
-    );
+    IF object_id('EternityEntities') is null
+    BEGIN
+        CREATE TABLE EternityEntities (
+            [nID] BIGINT IDENTITY(1,1) NOT NULL,
+            ID nvarchar(max),
+            IDHash nvarchar(400),
+            Name nvarchar(200) NOT NULL,
+            Input nvarchar(max),
+            IsWorkflow bit,
+            UtcETA DATETIME2 NOT NULL,
+            UtcCreated DATETIME2 NOT NULL,
+            UtcUpdated DATETIME2 NOT NULL,
+            Response nvarchar(max),
+            State nvarchar(20),
+            ParentID nvarchar(max),
+            ParentIDHash nvarchar(400),
+            Priority int,
+            CurrentWaitingID nvarchar(max)
+        ) CONSTRAINT [PK_History] PRIMARY KEY CLUSTERED (
+            [nID] ASC
+        );
 
-    CREATE INDEX IF NOT EXISTS IX_Workflows_ParentID
-    ON EternityEntities (ParentID) WHERE ParentID IS NOT NULL;
+        CREATE INDEX IX_Workflows_IDHash
+        ON EternityEntities (IDHash) INCLUDE (ID);
 
-    CREATE INDEX IF NOT EXISTS IX_Workflows_UtcETA
-    ON EternityEntities (UtcETA) WHERE IsWorkflow = 1;
+        CREATE INDEX IX_Workflows_ParentIDHash
+        ON EternityEntities (ParentIDHash) INCLUDE (ParentID) WHERE ParentIDHash IS NOT NULL;
 
-    CREATE TABLE IF NOT EXISTS ActivityLocks (
-        ID TEXT PRIMARY KEY,
-        ETA INTEGER
-    );
+        CREATE INDEX IX_Workflows_UtcETA
+        ON EternityEntities (UtcETA) WHERE IsWorkflow = 1;
+
+        CREATE TABLE ActivityLocks (
+            ID TEXT PRIMARY KEY
+        );
+    END
 
     DELETE FROM ActivityLocks;
 
