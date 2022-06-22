@@ -166,13 +166,13 @@ namespace NeuroSpeech.Eternity
         /// This will preserve the workflow in the storage after it was successfully executed.
         /// Default is 7 days.
         /// </summary>
-        public TimeSpan PreserveTime { get; set; } = TimeSpan.FromDays(7);
+        public TimeSpan PreserveTime { get; set; } = TimeSpan.FromMinutes(5);
 
         /// <summary>
         /// This will preserve the workflow in the storge after it was failed.
         /// Default is 30 days.
         /// </summary>
-        public TimeSpan FailurePreserveTime { get; set; } = TimeSpan.FromDays(30);
+        public TimeSpan FailurePreserveTime { get; set; } = TimeSpan.FromDays(1);
 
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         public EternityContext Context { get; private set; }
