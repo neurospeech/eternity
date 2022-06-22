@@ -4,7 +4,7 @@ namespace NeuroSpeech.Eternity
 {
     public class ActivitySuspendedException: Exception
     {
-        public ActivitySuspendedException()
+        internal ActivitySuspendedException()
         {
 
         }

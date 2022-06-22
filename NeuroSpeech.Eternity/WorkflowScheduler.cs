@@ -94,55 +94,55 @@ namespace NeuroSpeech.Eternity
             pendingTasks.Clear();
         }
 
-        /// <summary>
-        /// This will queue all tasks and will wait till 50% of them are done.
-        /// </summary>
-        /// <param name="items"></param>
-        /// <param name="runWorkflowAsync"></param>
-        /// <returns></returns>
-        internal Task<int> QueueAny(WorkflowQueueItem[] items, Func<WorkflowQueueItem, CancellationToken, Task> runWorkflowAsync)
-        {
-            var waiter = new TaskCompletionSource<int>();
-            int done = 0;
-            int max = items.Length / 2;
-            // var tasks = new Task[items.Length];
-            for (int i = 0; i < items.Length; i++)
-            {
-                var item = items[i];
+        ///// <summary>
+        ///// This will queue all tasks and will wait till 50% of them are done.
+        ///// </summary>
+        ///// <param name="items"></param>
+        ///// <param name="runWorkflowAsync"></param>
+        ///// <returns></returns>
+        //internal Task<int> QueueAny(WorkflowQueueItem[] items, Func<WorkflowQueueItem, CancellationToken, Task> runWorkflowAsync)
+        //{
+        //    var waiter = new TaskCompletionSource<int>();
+        //    int done = 0;
+        //    int max = items.Length / 2;
+        //    // var tasks = new Task[items.Length];
+        //    for (int i = 0; i < items.Length; i++)
+        //    {
+        //        var item = items[i];
 
-                pendingTasks.AddOrUpdate(item.ID, 
-                    (x) => Task.Run(async () =>
-                    {
-                        try
-                        {
-                            await runWorkflowAsync(item, cancellationTokenSource.Token);
-                        } finally
-                        {
-                            Interlocked.Increment(ref done);
-                            if(done >= max)
-                            {
-                                waiter.TrySetResult(pendingTasks.Count);
-                            }
-                        }
-                    }),
-                    (x, existing) => Task.Run(async () => {
-                        try
-                        {
-                            await existing;
-                            await runWorkflowAsync(item, cancellationTokenSource.Token);
-                        } finally
-                        {
-                            Interlocked.Increment(ref done);
-                            if (done >= max)
-                            {
-                                waiter.TrySetResult(pendingTasks.Count);
-                            }
-                        }
-                    }));
+        //        pendingTasks.AddOrUpdate(item.ID, 
+        //            (x) => Task.Run(async () =>
+        //            {
+        //                try
+        //                {
+        //                    await runWorkflowAsync(item, cancellationTokenSource.Token);
+        //                } finally
+        //                {
+        //                    Interlocked.Increment(ref done);
+        //                    if(done >= max)
+        //                    {
+        //                        waiter.TrySetResult(pendingTasks.Count);
+        //                    }
+        //                }
+        //            }),
+        //            (x, existing) => Task.Run(async () => {
+        //                try
+        //                {
+        //                    await existing;
+        //                    await runWorkflowAsync(item, cancellationTokenSource.Token);
+        //                } finally
+        //                {
+        //                    Interlocked.Increment(ref done);
+        //                    if (done >= max)
+        //                    {
+        //                        waiter.TrySetResult(pendingTasks.Count);
+        //                    }
+        //                }
+        //            }));
                 
-            }
-            return waiter.Task;
-        }
+        //    }
+        //    return waiter.Task;
+        //}
     }
 
     public class WorkflowScheduler<T> : IDisposable

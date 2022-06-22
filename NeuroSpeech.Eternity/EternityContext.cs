@@ -26,6 +26,8 @@ namespace NeuroSpeech.Eternity
         private WaitingTokens waitingTokens;
         private readonly JsonSerializerOptions options;
 
+        private Waiter waiter = new Waiter();
+
         /// <summary>
         /// Please turn off EmitAvailable on iOS
         /// </summary>
@@ -93,14 +95,21 @@ namespace NeuroSpeech.Eternity
             entity.UtcETA = eta;
             entity.UtcCreated = now;
             entity.UtcUpdated = entity.UtcCreated;
+            entity.Priority = options.Priority;
             var existing = await repository.GetAsync(id);
             if (existing != null)
             {
                 throw new ArgumentException($"Workflow already exists");
             }
             await repository.SaveAsync(entity);
-            NewWorkflow?.Invoke(this, EventArgs.Empty);
+            Trigger();
             return id;
+        }
+
+        public void Trigger()
+        {
+            NewWorkflow?.Invoke(this, EventArgs.Empty);
+            waiter.Clear();
         }
 
         internal async Task<WorkflowStatus<T?>?> GetStatusAsync<T>(string id)
@@ -125,6 +134,35 @@ namespace NeuroSpeech.Eternity
                     break;
             }
             return status;
+        }
+
+        public async Task ProcessMessagesAsync(
+            int maxActivitiesToProcess = 100,
+            TimeSpan pollingGap = default,
+            CancellationToken cancellationToken = default)
+        {
+            this.Cancellation = cancellationToken;
+            if (pollingGap == TimeSpan.Zero)
+            {
+                pollingGap = TimeSpan.FromMinutes(5);
+            }
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                var items = await repository.DequeueAsync(maxActivitiesToProcess, clock.UtcNow);
+                if (items.Count > 0)
+                {
+                    var list = new Task[items.Count];
+                    int index = 0;
+                    foreach(var item in items)
+                    {
+                        list[index++] = Task.Run(() => RunWorkflowAsync(item, cancellationToken), cancellationToken);
+                    }
+                    await Task.WhenAll(list);
+                    continue;
+                }
+                await waiter.WaitAsync(pollingGap, cancellationToken);
+                waitingTokens.Clear();
+            }
         }
 
         private Task<int>? previousTask = null;
@@ -172,6 +210,11 @@ namespace NeuroSpeech.Eternity
             return w;
         }
 
+        internal Task SetPriorityAsync(IWorkflow workflow, int priority)
+        {
+            workflow.Entity.Priority = priority;
+            return repository.SaveAsync(workflow.Entity);
+        }
 
         private async Task RunWorkflowAsync(EternityEntity entity, CancellationToken arg2)
         {

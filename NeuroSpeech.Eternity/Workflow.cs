@@ -12,6 +12,8 @@ namespace NeuroSpeech.Eternity
 {
     public class WorkflowOptions<T>
     {
+        public int Priority { get; set; }
+
         public string? ID { get; set; }
 
         public T Input { get; set; }
@@ -186,6 +188,11 @@ namespace NeuroSpeech.Eternity
 
         IList<string> IWorkflow.QueueItemList { get; } = new List<string>();
         EternityEntity IWorkflow.Entity { get; set; }
+
+        public Task SetPriorityAsync(int priority)
+        {
+            return Context.SetPriorityAsync(this, priority);
+        }
 
         public abstract Task<TOutput> RunAsync(TInput input);
 
