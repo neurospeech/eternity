@@ -126,7 +126,7 @@ namespace NeuroSpeech.Eternity
             SELECT * FROM EternityEntities 
                 WHERE (ID = {id})
                 OR
-                (ParentID = {id} AND instr(Input, {searchInInput}) > 0)
+                (ParentID = {id} AND (instr(Input, {searchInInput}) > 0))
                 ORDER BY IsWorkflow DESC, Priority DESC
                 LIMIT 2
             ");

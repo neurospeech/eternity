@@ -184,7 +184,7 @@ namespace NeuroSpeech.Eternity.SqlStorage
             SELECT TOP 2 * FROM EternityEntities 
                 WHERE (ID = {id} AND IDHash={idHash})
                 OR
-                (ParentID = {id} AND ParentIDHash = {idHash} AND CHARINDEX(Input, {searchInInput})> 0)
+                (ParentID = {id} AND ParentIDHash = {idHash} AND (CHARINDEX(Input, {searchInInput})> 0))
                 ORDER BY IsWorkflow DESC, Priority DESC
             ");
 
