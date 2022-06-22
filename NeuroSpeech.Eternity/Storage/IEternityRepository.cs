@@ -15,7 +15,7 @@ namespace NeuroSpeech.Eternity.Storage
 
     public interface IEternityRepository
     {
-        Task<List<EternityEntity>> QueryAsync(int max, DateTimeOffset utcNow);
+        Task<List<EternityEntity>> DequeueAsync(int max, DateTimeOffset utcNow);
 
         Task<EternityEntity?> GetAsync(string? id);
 

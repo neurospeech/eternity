@@ -147,7 +147,7 @@ namespace NeuroSpeech.Eternity
             {
                 await previous;
             }
-            var items = await repository.QueryAsync(maxActivitiesToProcess, clock.UtcNow);
+            var items = await repository.DequeueAsync(maxActivitiesToProcess, clock.UtcNow);
             if (items.Count == 0)
                 return items.Count;
             using var ws = new WorkflowScheduler<EternityEntity>(cancellationToken);

@@ -30,6 +30,7 @@ namespace NeuroSpeech.Eternity
             ParentID nvarchar(max),
             ParentIDHash nvarchar(400),
             Priority int,
+            QueueTTL DATETIME2 NULL,
             LockToken nvarchar(400) NULL,
             LockTTL DATETIME2 NULL,
         CONSTRAINT [PK_History] PRIMARY KEY CLUSTERED (

@@ -9,6 +9,11 @@ using System.Threading.Tasks;
 
 namespace NeuroSpeech.Eternity.SqlStorage
 {
+    public class SqlEternityEntity: EternityEntity
+    {
+        public long NID { get; set; }
+    }
+
     public class EternitySqlStorage : IEternityRepository
     {
         private Task? InitAsync;
@@ -39,13 +44,38 @@ namespace NeuroSpeech.Eternity.SqlStorage
             return conn;
         }
 
-        public async Task<List<EternityEntity>> QueryAsync(int max, DateTimeOffset utcNow)
+        public async Task<List<EternityEntity>> DequeueAsync(int max, DateTimeOffset utcNow)
         {
             using var db = await Open();
             var now = utcNow.UtcDateTime;
-            var query = TemplateQuery.New($"SELECT TOP ({max}) * FROM EternityEntities WHERE UtcETA < {now} AND IsWorkflow=1 ORDER BY Priority DESC");
-            var list = await db.FromSqlAsync<EternityEntity>(query, ignoreUnmatchedProperties: true);
-            return list;
+            var futureLock = now.AddMinutes(1);
+            var query = TemplateQuery.New(@$"
+                SELECT TOP ({max}) *
+                FROM EternityEntities
+                WHERE 
+                    UtcETA < {now}
+                    AND IsWorkflow=1
+                    AND (QueueTTL IS NULL OR QueueTTL<{now})
+                ORDER BY Priority DESC");
+            var list = await db.FromSqlAsync<SqlEternityEntity>(query, ignoreUnmatchedProperties: true);
+            var rlist = new List<EternityEntity>();
+            var ids = new List<long>();
+            foreach(var item in list)
+            {
+                rlist.Add(item);
+                ids.Add(item.NID);
+            }
+            if (ids.Any())
+            {
+                await db.ExecuteNonQueryAsync(TemplateQuery.New(@$"
+                UPDATE EternityEntities
+                SET
+                    QueueTTL={futureLock}
+                WHERE
+                    nID IN ({ids})
+            "));
+            }
+            return rlist;
         }
 
         public async Task<EternityEntity?> GetAsync(string? id)
@@ -95,6 +125,7 @@ namespace NeuroSpeech.Eternity.SqlStorage
                     Target.Name = S.Name,
                     Target.Input = S.Input,
                     Target.IsWorkflow = S.IsWorkflow,
+                    Target.QueueTTL = CASE WHEN S.UtcETA <> Target.UtcETA THEN NULL ELSE Target.QueueTTL END,
                     Target.UtcETA = S.UtcETA,
                     Target.UtcCreated = S.UtcCreated,
                     Target.UtcUpdated = S.UtcUpdated,
@@ -184,7 +215,7 @@ namespace NeuroSpeech.Eternity.SqlStorage
             SELECT TOP 2 * FROM EternityEntities 
                 WHERE (ID = {id} AND IDHash={idHash})
                 OR
-                (ParentID = {id} AND ParentIDHash = {idHash} AND (CHARINDEX(Input, {searchInInput})> 0))
+                (ParentID = {id} AND ParentIDHash = {idHash} AND (CHARINDEX({searchInInput}, Input)> 0))
                 ORDER BY IsWorkflow DESC, Priority DESC
             ");
 

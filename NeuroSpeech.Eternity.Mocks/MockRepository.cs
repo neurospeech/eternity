@@ -110,7 +110,7 @@ namespace NeuroSpeech.Eternity
             return m;
         }
 
-        public async Task<List<EternityEntity>> QueryAsync(int max, DateTimeOffset utcNow)
+        public async Task<List<EternityEntity>> DequeueAsync(int max, DateTimeOffset utcNow)
         {
             await Task.Delay(10);
             var result = new List<EternityEntity>();

@@ -42,7 +42,7 @@ namespace NeuroSpeech.Eternity
             return conn;
         }
 
-        public async Task<List<EternityEntity>> QueryAsync(int max, DateTimeOffset utcNow)
+        public async Task<List<EternityEntity>> DequeueAsync(int max, DateTimeOffset utcNow)
         {
             using var db = await Open();
             var query = TemplateQuery.New($"SELECT * FROM EternityEntities WHERE UtcETA < {utcNow.UtcTicks} AND IsWorkflow=1 ORDER BY Priority DESC LIMIT {max}");
