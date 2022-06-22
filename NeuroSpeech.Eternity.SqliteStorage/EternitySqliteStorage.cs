@@ -1,4 +1,5 @@
 ﻿using Microsoft.Data.Sqlite;
+using NeuroSpeech.Eternity.Storage;
 using NeuroSpeech.TemplatedQuery;
 using System;
 using System.Collections.Generic;
@@ -10,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace NeuroSpeech.Eternity
 {
-    public class EternitySqliteStorage : IEternityStorage
+    public class EternitySqliteStorage : IEternityRepository
     {
 
         private Task? InitAsync;
@@ -41,299 +42,101 @@ namespace NeuroSpeech.Eternity
             return conn;
         }
 
-        public async Task<List<WorkflowStep>> EnumerateWorkflowsAsync(int start, int size = 100)
+        public async Task<List<EternityEntity>> DequeueAsync(int max, DateTimeOffset utcNow)
         {
             using var db = await Open();
-            var q = TemplateQuery.New($"SELECT * FROM Workflows ORDER BY DateCreated DESC LIMIT {size} OFFSET {start}");
-            return await db.FromSqlAsync<WorkflowStep>(q, true);
+            var query = TemplateQuery.New($"SELECT * FROM EternityEntities WHERE UtcETA < {utcNow.UtcTicks} AND IsWorkflow=1 ORDER BY Priority DESC LIMIT {max}");
+            return await db.FromSqlAsync<EternityEntity>(query);
         }
 
-        public async Task<List<ActivityStep>> EnumerateActivitiesAsync(string workflowID)
+        public async Task<EternityEntity?> GetAsync(string? id)
         {
             using var db = await Open();
-            var q = TemplateQuery.New($"SELECT * FROM Activities WHERE ID={workflowID} ORDER BY SequenceID");
-            return await db.FromSqlAsync<ActivityStep>(q, true);
+            var query = TemplateQuery.New($"SELECT * FROM EternityEntities WHERE ID = {id}");
+            var result = await db.FromSqlAsync<EternityEntity>(query);
+            return result.FirstOrDefault();
         }
 
-        public async Task<IEternityLock> AcquireLockAsync(string id, long sequenceId)
+        public async Task SaveAsync(params EternityEntity[] entities)
         {
-            while (true)
+            var parts = new TemplateFragments(";");
+            foreach(var entity in entities)
+            {
+                var q = TemplateQuery.New(@$"INSERT OR REPLACE INTO EternityEntities(
+                    ID, Name, Input, IsWorkflow, UtcETA, UtcCreated, UtcUpdated,
+                    Response, State, ParentID, Priority
+                    
+                ) VALUES (
+                    {entity.ID},{entity.Name},{entity.Input},{entity.IsWorkflow},
+                    {entity.UtcETA.UtcTicks}, {entity.UtcCreated.UtcTicks}, { entity.UtcUpdated.UtcTicks},
+                    {entity.Response}, { entity.State}, {entity.ParentID},
+                    {entity.Priority}
+                )");
+                parts.Add(q);
+            }
+
+            using var db = await Open();
+            await db.ExecuteScalarAsync(parts.ToSqlQuery());
+        }
+
+        public Task<string> CreateAsync(EternityEntity entity)
+        {
+            throw new NotImplementedException();
+        }
+
+        public async Task<IAsyncDisposable> LockAsync(EternityEntity entity, TimeSpan maxTTL)
+        {
+            var start = clock.UtcNow;
+            var end = start.Add(maxTTL);
+            while(start < end)
             {
                 using var db = await Open();
-                var now = clock.UtcNow;
-                var locked = now.AddMinutes(1);
-                try {
-                    var q = TemplateQuery.New(@$"
-DELETE FROM ActivityLocks WHERE SequenceID={sequenceId} AND ETA<={now.UtcTicks};
-INSERT INTO ActivityLocks(SequenceID, ETA) VALUES ({sequenceId}, {locked.UtcTicks});");
-                    await db.ExecuteNonQueryAsync(q);
-                    return new ActivityLock { SequenceID = sequenceId };
-                }
-                catch (SqliteException ex){
-                    System.Diagnostics.Debug.WriteLine(ex);
-                }
-                await Task.Delay(QueuePollInterval);
-            }
-        }
-
-        public async Task DeleteHistoryAsync(string id)
-        {
-            using var db = await Open();
-            var query = TemplateQuery.New(@$"
-DELETE FROM Activities WHERE ID={id};
-DELETE FROM ActivityEvents WHERE ID={id};
-");
-            await db.ExecuteNonQueryAsync(query);
-        }
-
-        public async Task FreeLockAsync(IEternityLock executionLock)
-        {
-            using var db = await Open();
-            var l = (executionLock as ActivityLock)!;
-            var q = TemplateQuery.New(@$"DELETE FROM ActivityLocks WHERE SequenceID={l.SequenceID}");
-            await db.ExecuteNonQueryAsync(q);
-        }
-
-        public async Task<ActivityStep> GetEventAsync(string id, string eventName)
-        {
-            using var db = await Open(); var sids = await db.FromSqlAsync<ActivityStep>(TemplateQuery.New(@$"
-SELECT SequenceID FROM ActivityEvents WHERE ID={id} AND EventName={eventName}
-ORDER BY SequenceID DESC
-"), true);
-            return await GetStatusAsync(sids.First());
-        }
-
-        private static long lockID = 1;
-
-        public async Task<WorkflowQueueItem[]> GetScheduledActivitiesAsync(int maxActivitiesToProcess)
-        {
-            using var db = await Open();
-            var now = clock.UtcNow;
-            var locked = now.AddMinutes(1);
-            var q = TemplateQuery.New($"SELECT * FROM QueueTokens WHERE ETA <= {now.UtcTicks} LIMIT 32");
-            var list = await db.FromSqlAsync<QueueToken>(q, true);
-            List<WorkflowQueueItem> results = new List<WorkflowQueueItem>();
-            foreach (var c in list)
-            {
-                if (c.ETALocked > locked.Ticks)
-                    continue;
-                var lid = Interlocked.Increment(ref lockID);
-                // update single...
-                int i = await db.ExecuteNonQueryAsync(TemplateQuery.New(@$"
-UPDATE 
-    QueueTokens
-SET
-    ETALocked={locked.Ticks},
-    CID={lid}
-WHERE
-    Token={c.Token}
-    AND CID={c.CID}
-"));
-
-                if (i == 1)
+                var q = TemplateQuery.New($"SELECT * FROM ActivityLocks WHERE ID={entity.ID}");
+                var l = await db.FromSqlAsync<ActivityLock>(q);
+                if (l.Count == 0)
                 {
-                    results.Add(new WorkflowQueueItem
-                    {
-                        ID = c.ID,
-                        QueueToken = c.Token.ToString()
+                    await db.ExecuteNonQueryAsync(TemplateQuery.New($"INSERT INTO ActivityLocks(ID, ETA) VALUES ({entity.ID}, {1})"));
+                    return new AsyncDisposable(async () => {
+                        using var db2 = await Open();
+                        await db2.ExecuteNonQueryAsync(TemplateQuery.New($"DELETE FROM ActivityLocks WHERE ID={entity.ID}"));
                     });
-                    if (results.Count == maxActivitiesToProcess)
-                        break;
                 }
+                await Task.Delay(this.QueuePollInterval);
+                start = start.Add(this.QueuePollInterval);
             }
-            return results.ToArray();
+            throw new TimeoutException();
         }
 
-        public async Task<ActivityStep> GetStatusAsync(ActivityStep key)
+        public async Task DeleteAsync(EternityEntity entity)
         {
             using var db = await Open();
-            if (key.SequenceID > 0)
-            {
-                return await db.FirstOrDefaultAsync<ActivityStep>(TemplateQuery.New(@$"
-SELECT * FROM Activities WHERE SequenceID = {key.SequenceID}
-"), true);
-            }
-
-            var q = TemplateQuery.New(@$"SELECT * FROM Activities WHERE ID={key.ID} AND KeyHash={key.KeyHash} AND Key={key.Key}");
-            return await db.FirstOrDefaultAsync<ActivityStep>(q, true);
+            await db.ExecuteNonQueryAsync(TemplateQuery.New($"DELETE FROM EternityEntities WHERE ID={entity.ID} OR ParentID={entity.ID}"));
         }
 
-        public async Task<WorkflowStep> GetWorkflowAsync(string id)
+        public async Task DeleteChildrenAsync(EternityEntity entity)
         {
             using var db = await Open();
-            var query = TemplateQuery.New($"SELECT * FROM Workflows WHERE ID = {id}");
-            var list = await db.FromSqlAsync<WorkflowStep>(query, true);
-            return list.FirstOrDefault();
+            await db.ExecuteNonQueryAsync(TemplateQuery.New($"DELETE FROM EternityEntities WHERE ParentID={entity.ID}"));
         }
 
-        public async Task<ActivityStep> InsertActivityAsync(ActivityStep key)
-        {
-            using var db = await Open();
-            var query = TemplateQuery.New($@"
-INSERT INTO Activities (
-ID,
-Method,
-ActivityType,
-DateCreated,
-LastUpdated,
-ETA,
-Key,
-KeyHash,
-Status,
-Error,
-Result
-)
-VALUES (
-    {key.ID},
-    {key.Method},
-    {key.ActivityType},
-    {key.DateCreated.UtcTicks},
-    {key.LastUpdated.UtcTicks},
-    {key.ETA.UtcTicks},
-    {key.Key},
-    {key.KeyHash},
-    {key.Status.ToString()},
-    {key.Error},
-    {key.Result}
-);
-SELECT last_insert_rowid();");
-            var id = await db.ExecuteScalarAsync(query);
-            key.SequenceID = (long)Convert.ChangeType(id, typeof(long));
-
-            // insert if it has any events..
-            if (key.ActivityType == ActivityType.Event)
-            {
-                var eventNames = key.GetEvents()!;
-                foreach (var name in eventNames)
-                {
-                    var insert = TemplateQuery.New($"INSERT INTO ActivityEvents(ID,EventName,SequenceID) VALUES ({key.ID}, {name}, {key.SequenceID})");
-                    await db.ExecuteNonQueryAsync(insert);
-                }
-            }
-
-            return key;
-        }
-
-        public async Task<WorkflowStep> InsertWorkflowAsync(WorkflowStep step)
+        public async Task<(EternityEntity? Workflow, EternityEntity? Event)> GetEventAsync(string id, string name, string searchInInput)
         {
             using var db = await Open();
             var query = TemplateQuery.New(@$"
-    INSERT INTO Workflows (
-        ID,
-        WorkflowType,
-        Category,
-        Description,
-        Parameter,
-        ETA,
-        DateCreated,
-        LastUpdated,
-        ParentID,
-        Status,
-        Result,
-        Error
-    )
-    VALUES (
-        {step.ID},
-        {step.WorkflowType},
-        {step.Category},
-        {step.Description},
-        {step.Parameter},
-        {step.ETA.UtcTicks},
-        {step.DateCreated.UtcTicks},
-        {step.LastUpdated.UtcTicks},
-        {step.ParentID},
-        {step.Status.ToString()},
-        {step.Result},
-        {step.Error}
-    )
-");
-            await db.ExecuteNonQueryAsync(query);
-            return step;
-        }
+            SELECT * FROM EternityEntities 
+                WHERE (ID = {id})
+                OR
+                (ParentID = {id} AND Name={name} AND (instr(Input, {searchInInput}) > 0))
+                ORDER BY IsWorkflow DESC, Priority DESC
+                LIMIT 2
+            ");
 
-        public async Task<string> QueueWorkflowAsync(WorkflowQueueItem item, string? existing = null)
-        {
-            using var db = await Open();
-            if (existing != null)
-            {
-                var eid = long.Parse(existing);
-                await db.ExecuteNonQueryAsync(TemplateQuery.New($@"DELETE FROM QueueTokens WHERE Token={eid}"));
-            }
-            var nlID = Interlocked.Increment(ref lockID);
-            var q = TemplateQuery.New(@$"
-INSERT INTO QueueTokens(ID,ETA,Command,ETALocked,CID)
-VALUES (
-    {item.ID},
-    {item.ETA.UtcTicks},
-    {item.Command},
-    {0},
-    {nlID}
-);
-SELECT last_insert_rowid();");
-            var nextID = await db.ExecuteScalarAsync(q);
-            return nextID.ToString();
-        }
-
-        public async Task RemoveQueueAsync(params string[] token)
-        {
-            using var db = await Open();
-            long[] ids = new long[token.Length];
-            for (int i = 0; i < token.Length; i++)
-            {
-                ids[i] = long.Parse(token[i]);
-            }
-            await db.ExecuteNonQueryAsync(TemplateQuery.New(@$"DELETE FROM QueueTokens WHERE Token IN ({ids})"));
-        }
-
-        public async Task UpdateAsync(ActivityStep key)
-        {
-            using var db = await Open();
-            var q = TemplateQuery.New(@$"
-UPDATE 
-    Activities 
-SET
-    DateCreated={key.DateCreated.UtcTicks},
-    LastUpdated={key.LastUpdated.UtcTicks},
-    ETA={key.ETA.UtcTicks},
-    Status={key.Status.ToString()},
-    Error={key.Error},
-    Result={key.Result},
-    QueueToken={key.QueueToken}
-WHERE
-    SequenceID={key.SequenceID}
-");
-
-            await db.ExecuteNonQueryAsync(q);
-        }
-
-        public async Task UpdateAsync(WorkflowStep key)
-        {
-            using var db = await Open();
-            var q = TemplateQuery.New(@$"
-UPDATE 
-    Workflows 
-SET
-    LastUpdated={key.LastUpdated.UtcTicks},
-    ETA={key.ETA.UtcTicks},
-    Status={key.Status.ToString()},
-    Error={key.Error},
-    Result={key.Result}
-WHERE
-    ID={key.ID}
-");
-
-            await db.ExecuteNonQueryAsync(q);
-        }
-
-        public async Task DeleteWorkflowAsync(string id)
-        {
-            using var db = await Open();
-            var query = TemplateQuery.New(@$"
-DELETE FROM Activities WHERE ID={id};
-DELETE FROM ActivityEvents WHERE ID={id};
-DELETE FROM Workflows WHERE ID={id};
-");
-            db.ExecuteNonQuery(query);
+            var list = await db.FromSqlAsync<EternityEntity>(query);
+            if (list.Count == 0)
+                return (null, null);
+            if (list.Count == 1)
+                return (list[0], null);
+            return (list[0], list[1]);
         }
     }
 }

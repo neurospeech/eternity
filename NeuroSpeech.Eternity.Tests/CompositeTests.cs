@@ -1,5 +1,6 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NeuroSpeech.Eternity.Mocks;
+using NeuroSpeech.Eternity.Storage;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -64,7 +65,7 @@ namespace NeuroSpeech.Eternity.Tests
 
             var s = await ParentWorkflow.GetStatusAsync(context, id);
 
-            Assert.AreEqual(s.Status, ActivityStatus.Completed);
+            Assert.AreEqual(s.Status, EternityEntityState.Completed);
             Assert.AreEqual(s.Result, 8);
         }
 

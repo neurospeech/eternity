@@ -27,37 +27,37 @@ namespace NeuroSpeech.Eternity
         }
 
 
-        public static TableEntity ToTableEntity(this ActivityStep key, string rowKey)
-        {
-            var te = new TableEntity(key.ID, rowKey)
-                {
-                    { nameof(key.Method), key.Method },
-                    { nameof(key.ID), key.ID },
-                    { nameof(key.ActivityType), Enum.GetName(typeof(ActivityType), key.ActivityType) },
-                    { nameof(key.SequenceID), key.SequenceID },
-                    { nameof(key.DateCreated), key.DateCreated },
-                    { nameof(key.LastUpdated), key.LastUpdated },
-                    { nameof(key.ETA), key.ETA },
-                    { nameof(key.Status) , Enum.GetName(typeof(ActivityStatus), key.Status) }
-                };
-            if(key.QueueToken != null)
-            {
-                te.Add(nameof(key.QueueToken), key.QueueToken);
-            }
-            if(key.Result != null)
-            {
-                te.Add(nameof(key.Result), key.Result);
-            }
-            if(key.Error != null)
-            {
-                te.Add(nameof(key.Error), key.Error);
-            }
-            if(key.Key != null)
-            {
-                te.Add(nameof(key.Key), key.Key);
-            }
-            return te;
-        }
+        //public static TableEntity ToTableEntity(this ActivityStep key, string rowKey)
+        //{
+        //    var te = new TableEntity(key.ID, rowKey)
+        //        {
+        //            { nameof(key.Method), key.Method },
+        //            { nameof(key.ID), key.ID },
+        //            { nameof(key.ActivityType), Enum.GetName(typeof(ActivityType), key.ActivityType) },
+        //            { nameof(key.SequenceID), key.SequenceID },
+        //            { nameof(key.DateCreated), key.DateCreated },
+        //            { nameof(key.LastUpdated), key.LastUpdated },
+        //            { nameof(key.ETA), key.ETA },
+        //            { nameof(key.Status) , Enum.GetName(typeof(ActivityStatus), key.Status) }
+        //        };
+        //    if(key.QueueToken != null)
+        //    {
+        //        te.Add(nameof(key.QueueToken), key.QueueToken);
+        //    }
+        //    if(key.Result != null)
+        //    {
+        //        te.Add(nameof(key.Result), key.Result);
+        //    }
+        //    if(key.Error != null)
+        //    {
+        //        te.Add(nameof(key.Error), key.Error);
+        //    }
+        //    if(key.Key != null)
+        //    {
+        //        te.Add(nameof(key.Key), key.Key);
+        //    }
+        //    return te;
+        //}
 
         public static async Task DeleteAllAsync(this TableClient client, IEnumerable<(string partitionKey, string rowKey)> items)
         {

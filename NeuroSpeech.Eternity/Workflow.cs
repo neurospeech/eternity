@@ -1,4 +1,5 @@
-﻿using System;
+﻿using NeuroSpeech.Eternity.Storage;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -11,6 +12,8 @@ namespace NeuroSpeech.Eternity
 {
     public class WorkflowOptions<T>
     {
+        public int Priority { get; set; }
+
         public string? ID { get; set; }
 
         public T Input { get; set; }
@@ -42,7 +45,7 @@ namespace NeuroSpeech.Eternity
         public static Task<string> CreateAsync(EternityContext context, WorkflowOptions<TInput> options)
         {
             context.GetDerived(typeof(TWorkflow));
-            return context.CreateAsync<TInput, TOutput>(typeof(TWorkflow), options);
+            return context.CreateAsync(typeof(TWorkflow), options);
         }
 
         /// <summary>
@@ -55,7 +58,7 @@ namespace NeuroSpeech.Eternity
         {
             // this will force verification..
             context.GetDerived(typeof(TWorkflow));
-            return context.CreateAsync<TInput, TOutput>(typeof(TWorkflow), new WorkflowOptions<TInput> { 
+            return context.CreateAsync(typeof(TWorkflow), new WorkflowOptions<TInput> { 
                 Input = input,
                 Description = description
             });
@@ -108,7 +111,7 @@ namespace NeuroSpeech.Eternity
                 var result = await GetStatusAsync(context, id);
                 if (result == null)
                     return Empty ??= new WorkflowStatus<TOutput?>();
-                if (result.Status == ActivityStatus.Completed || result.Status == ActivityStatus.Failed)
+                if (result.Status == EternityEntityState.Completed || result.Status == EternityEntityState.Failed)
                 {
                     return result;
                 }
@@ -143,6 +146,7 @@ namespace NeuroSpeech.Eternity
 
         bool IWorkflow.IsGenerated => generated;
         
+        int IWorkflow.WaitCount { get; set; }
 
         /// <summary>
         /// Workflow ID associated with current execution
@@ -184,6 +188,18 @@ namespace NeuroSpeech.Eternity
         bool IWorkflow.IsActivityRunning { get => IsActivityRunning; set => IsActivityRunning = value; }
 
         IList<string> IWorkflow.QueueItemList { get; } = new List<string>();
+
+        private EternityEntity _entity;
+        EternityEntity IWorkflow.Entity { get => _entity; set => _entity = value; }
+
+        public int Priority { get => _entity.Priority; set => _entity.Priority = value; }
+
+        public IDictionary<string,string> Extra { get => _entity.ExtraDictionary; }
+
+        public Task SaveAsync()
+        {
+            return Context.SaveAsync(this);
+        }
 
         public abstract Task<TOutput> RunAsync(TInput input);
 

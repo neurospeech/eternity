@@ -9,8 +9,8 @@ Long running workflows with ability to suspend and replay the workflow in future
 |----------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | NeuroSpeech.Eternity                               | [![NuGet](https://img.shields.io/nuget/v/NeuroSpeech.Eternity.svg?label=NuGet)](https://www.nuget.org/packages/NeuroSpeech.Eternity)                           |
 | NeuroSpeech.Eternity.DependencyInjectionExtensions | [![NuGet](https://img.shields.io/nuget/v/NeuroSpeech.Eternity.DependencyInjectionExtensions.svg?label=NuGet)](https://www.nuget.org/packages/NeuroSpeech.Eternity.DependencyInjectionExtensions) |
-| NeuroSpeech.Eternity.AzureStorage                  | [![NuGet](https://img.shields.io/nuget/v/NeuroSpeech.Eternity.AzureStorage.svg?label=NuGet)](https://www.nuget.org/packages/NeuroSpeech.Eternity.AzureStorage) |
 | NeuroSpeech.Eternity.SqliteStorage                 | [![NuGet](https://img.shields.io/nuget/v/NeuroSpeech.Eternity.SqliteStorage.svg?label=NuGet)](https://www.nuget.org/packages/NeuroSpeech.Eternity.SqliteStorage) |
+| NeuroSpeech.Eternity.SqlStorage                 | [![NuGet](https://img.shields.io/nuget/v/NeuroSpeech.Eternity.SqlStorage.svg?label=NuGet)](https://www.nuget.org/packages/NeuroSpeech.Eternity.SqlStorage) |
 | NeuroSpeech.Eternity.Mocks                         | [![NuGet](https://img.shields.io/nuget/v/NeuroSpeech.Eternity.Mocks.svg?label=NuGet)](https://www.nuget.org/packages/NeuroSpeech.Eternity.Mocks)               |
 
 
@@ -28,6 +28,12 @@ Long running workflows with ability to suspend and replay the workflow in future
 11. Workflow can wait for multiple events, and when you raise an event, it will optionally throw an exception if workflow is not waiting.
 12. You can wait for events for days/months. It does not occupy any resources, waiting occurs in queue, and workers do not stay busy while waiting.
 13. .NET Standard 2.0 support, it means it can run anywhere without any native/local dependency.
+
+## Why did we remove Azure Table Storage?
+
+1. Table Storage is very expensive, instead, using Sql Azure is cheaper as it does not charge per transaction.
+2. Table Storage Key has restrictions on ID, it needs URL escaping. Sql Azure has no such restriction.
+3. You can easily query and view table, there is only single table named "EternityEntities".
 
 # Documentation
 1. [Home](https://github.com/neurospeech/eternity/wiki)
