@@ -102,13 +102,18 @@ namespace NeuroSpeech.Eternity
                 throw new ArgumentException($"Workflow already exists");
             }
             await repository.SaveAsync(entity);
+            NewWorkflow?.Invoke(this, EventArgs.Empty);
             Trigger();
             return id;
         }
 
-        public void Trigger()
+        public void Trigger(string? id = null)
         {
-            NewWorkflow?.Invoke(this, EventArgs.Empty);
+            if (id != null)
+            {
+                // something wrong...
+                waitingTokens.Cancel(id);
+            }
             waiter.Clear();
         }
 
@@ -354,8 +359,7 @@ namespace NeuroSpeech.Eternity
             }
             if (existing.State == EternityEntityState.Failed || existing.State == EternityEntityState.Completed)
             {
-                // something wrong...
-                waitingTokens.Cancel(existing.ID);
+                Trigger(existing.ID);
                 return;
             }
             existing.UtcUpdated = clock.UtcNow;
@@ -369,9 +373,9 @@ namespace NeuroSpeech.Eternity
             workflow.UtcETA = existing.UtcUpdated;
             await repository.SaveAsync(workflow, existing);
 
-            waitingTokens.Cancel(existing.ID);
+            Trigger(existing.ID);
         }
-        
+
         private EternityEntity CreateEntity(
             IWorkflow workflow,
             string name,
