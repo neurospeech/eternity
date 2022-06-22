@@ -80,13 +80,21 @@ namespace NeuroSpeech.Eternity
                 {
                     var p = cmd.CreateParameter();
                     p.ParameterName = kvp.Key;
-                    if (kvp.Value is DateTimeOffset d)
+                    var value = kvp.Value ?? DBNull.Value;
+                    if (value.GetType().IsEnum)
                     {
-                        p.Value = d.UtcDateTime;
+                        p.Value = value.ToString();
                     }
                     else
                     {
-                        p.Value = kvp.Value ?? DBNull.Value;
+                        if (value is DateTimeOffset d)
+                        {
+                            p.Value = d.UtcDateTime;
+                        }
+                        else
+                        {
+                            p.Value = value;
+                        }
                     }
                     cmd.Parameters.Add(p);
                 }
@@ -122,13 +130,21 @@ namespace NeuroSpeech.Eternity
                 {
                     var p = cmd.CreateParameter();
                     p.ParameterName = kvp.Key;
-                    if (kvp.Value is DateTimeOffset d)
+                    var value = kvp.Value ?? DBNull.Value;
+                    if (value.GetType().IsEnum)
                     {
-                        p.Value = d.UtcDateTime;
+                        p.Value = value.ToString();
                     }
                     else
                     {
-                        p.Value = kvp.Value ?? DBNull.Value;
+                        if (value is DateTimeOffset d)
+                        {
+                            p.Value = d.UtcDateTime;
+                        }
+                        else
+                        {
+                            p.Value = value;
+                        }
                     }
                     cmd.Parameters.Add(p);
                 }
