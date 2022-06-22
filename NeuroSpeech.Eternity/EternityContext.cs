@@ -122,7 +122,8 @@ namespace NeuroSpeech.Eternity
             var status = new WorkflowStatus<T?> { 
                 Status = result.State,
                 DateCreated = result.UtcCreated,
-                LastUpdate = result.UtcUpdated
+                LastUpdate = result.UtcUpdated,
+                Extra = result.ExtraDictionary,
             };
             switch (result.State)
             {
@@ -188,12 +189,11 @@ namespace NeuroSpeech.Eternity
             var items = await repository.DequeueAsync(maxActivitiesToProcess, clock.UtcNow);
             if (items.Count == 0)
                 return items.Count;
-            using var ws = new WorkflowScheduler<EternityEntity>(cancellationToken);
             var tasks = new Task[items.Count];
             for (int i = 0; i < items.Count; i++)
             {
                 var item = items[i];
-                tasks[i] = ws.Queue(item.ID, item, RunWorkflowAsync);
+                tasks[i] = Task.Run(() => RunWorkflowAsync(item, cancellationToken), cancellationToken);
             }
             await Task.WhenAll(tasks);
             waitingTokens.Clear();
@@ -210,9 +210,8 @@ namespace NeuroSpeech.Eternity
             return w;
         }
 
-        internal Task SetPriorityAsync(IWorkflow workflow, int priority)
+        internal Task SaveAsync(IWorkflow workflow)
         {
-            workflow.Entity.Priority = priority;
             return repository.SaveAsync(workflow.Entity);
         }
 
@@ -356,6 +355,8 @@ namespace NeuroSpeech.Eternity
             if (existing.State == EternityEntityState.Failed || existing.State == EternityEntityState.Completed)
             {
                 // something wrong...
+                waitingTokens.Cancel(existing.ID);
+                return;
             }
             existing.UtcUpdated = clock.UtcNow;
             existing.State = EternityEntityState.Completed;
@@ -367,6 +368,8 @@ namespace NeuroSpeech.Eternity
             existing.Input = ""; // remove event names... 
             workflow.UtcETA = existing.UtcUpdated;
             await repository.SaveAsync(workflow, existing);
+
+            waitingTokens.Cancel(existing.ID);
         }
         
         private EternityEntity CreateEntity(
@@ -575,11 +578,12 @@ namespace NeuroSpeech.Eternity
             session?.LogInformation($"Workflow {workflow.ID} waiting for an external event");
             var activity = CreateEntity(workflow, nameof(WaitForExternalEventsAsync), false, Empty, eta, workflow.CurrentUtc);
             activity.Input = Serialize(names);
+            activity.Priority = workflow.WaitCount++;
             var activityId = activity.ID;
             workflowEntity.UtcETA = eta;
             var result = await repository.GetAsync(activityId);
             if (result == null)
-            {
+            {                
                 await repository.SaveAsync(activity, workflowEntity);
             }
 
@@ -618,7 +622,7 @@ namespace NeuroSpeech.Eternity
 
                 if (diff.TotalMilliseconds > 0)
                 {
-                    await Task.Delay(diff, this.Cancellation);
+                    await waitingTokens.Delay(activityId, diff, Cancellation);
                 }
 
                 result = await repository.GetAsync(activityId);

@@ -146,6 +146,7 @@ namespace NeuroSpeech.Eternity
 
         bool IWorkflow.IsGenerated => generated;
         
+        int IWorkflow.WaitCount { get; set; }
 
         /// <summary>
         /// Workflow ID associated with current execution
@@ -187,11 +188,17 @@ namespace NeuroSpeech.Eternity
         bool IWorkflow.IsActivityRunning { get => IsActivityRunning; set => IsActivityRunning = value; }
 
         IList<string> IWorkflow.QueueItemList { get; } = new List<string>();
-        EternityEntity IWorkflow.Entity { get; set; }
 
-        public Task SetPriorityAsync(int priority)
+        private EternityEntity _entity;
+        EternityEntity IWorkflow.Entity { get => _entity; set => _entity = value; }
+
+        public int Priority { get => _entity.Priority; set => _entity.Priority = value; }
+
+        public IDictionary<string,string> Extra { get => _entity.ExtraDictionary; }
+
+        public Task SaveAsync()
         {
-            return Context.SetPriorityAsync(this, priority);
+            return Context.SaveAsync(this);
         }
 
         public abstract Task<TOutput> RunAsync(TInput input);

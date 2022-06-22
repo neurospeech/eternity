@@ -34,5 +34,13 @@ namespace NeuroSpeech.Eternity
         TimeSpan PreserveTime { get; }
 
         TimeSpan FailurePreserveTime { get;}
+
+        int WaitCount { get; set; }
+
+        int Priority { get; set; }
+
+        IDictionary<string,string> Extra { get; }
+
+        Task SaveAsync();
     }
 }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Text;
 using System.Text.Json;
 
@@ -79,5 +80,41 @@ namespace NeuroSpeech.Eternity.Storage
         public string? ParentID { get; set; }
 
         public int Priority { get; set; }
+
+        public string Extra {
+            get { 
+                if (ExtraDictionary.Count == 0)
+                {
+                    return "{}";
+                }
+                return JsonSerializer.Serialize(ExtraDictionary);
+            }
+            set {
+                try
+                {
+                    var json = JsonDocument.Parse(value);
+                    foreach(var item in json.RootElement.EnumerateObject())
+                    {
+                        var key = item.Name;
+                        var v = item.Value;
+                        switch (v.ValueKind)
+                        {
+                            case JsonValueKind.String:
+                                if (v.GetString() is String sv)
+                                {
+                                    ExtraDictionary[key] = sv;
+                                }
+                                break;
+                        }
+                    }
+
+                }
+                catch {
+                    ExtraDictionary.Clear();
+                }
+            }
+        }
+
+        internal readonly IDictionary<string, string> ExtraDictionary = new Dictionary<string, string>();
     }
 }
