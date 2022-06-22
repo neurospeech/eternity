@@ -164,13 +164,13 @@ namespace NeuroSpeech.Eternity
 
         /// <summary>
         /// This will preserve the workflow in the storage after it was successfully executed.
-        /// Default is 7 days.
+        /// Default is 5 minutes.
         /// </summary>
         public TimeSpan PreserveTime { get; set; } = TimeSpan.FromMinutes(5);
 
         /// <summary>
         /// This will preserve the workflow in the storge after it was failed.
-        /// Default is 30 days.
+        /// Default is 1 day.
         /// </summary>
         public TimeSpan FailurePreserveTime { get; set; } = TimeSpan.FromDays(1);
 
@@ -192,10 +192,25 @@ namespace NeuroSpeech.Eternity
         private EternityEntity _entity;
         EternityEntity IWorkflow.Entity { get => _entity; set => _entity = value; }
 
+        /// <summary>
+        /// You can change priority, higher priority workflows are
+        /// executed first. You can change priority in the middle of execution
+        /// if you are going to wait for an event or add some delay.
+        /// Please call SaveaAync to save changes.
+        /// </summary>
         public int Priority { get => _entity.Priority; set => _entity.Priority = value; }
 
+        /// <summary>
+        /// You can add/remove extra key value pairs associated with this workflow.
+        /// Please call SaveaAync to save changes.
+        /// </summary>
         public IDictionary<string,string> Extra { get => _entity.ExtraDictionary; }
 
+        /// <summary>
+        /// Save Priority and other Extra key value pairs, you can retrive Extra
+        /// by calling GetStatusAsync method.
+        /// </summary>
+        /// <returns></returns>
         public Task SaveAsync()
         {
             return Context.SaveAsync(this);
