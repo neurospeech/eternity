@@ -30,31 +30,24 @@ namespace NeuroSpeech.Eternity
             ParentID nvarchar(max),
             ParentIDHash nvarchar(400),
             Priority int,
-            CurrentWaitingID nvarchar(max)
-        ) CONSTRAINT [PK_History] PRIMARY KEY CLUSTERED (
+            LockToken nvarchar(400) NULL,
+            LockTTL DATETIME2 NULL,
+        CONSTRAINT [PK_History] PRIMARY KEY CLUSTERED (
             [nID] ASC
-        );
+        ));
 
         CREATE INDEX IX_Workflows_IDHash
         ON EternityEntities (IDHash) INCLUDE (ID);
 
         CREATE INDEX IX_Workflows_ParentIDHash
-        ON EternityEntities (ParentIDHash) INCLUDE (ParentID) WHERE ParentIDHash IS NOT NULL;
+        ON EternityEntities (ParentIDHash, Priority DESC) INCLUDE (ParentID) WHERE ParentIDHash IS NOT NULL;
 
         CREATE INDEX IX_Workflows_UtcETA
-        ON EternityEntities (UtcETA) WHERE IsWorkflow = 1;
+        ON EternityEntities (UtcETA, Priority DESC) WHERE IsWorkflow = 1;
 
-        CREATE TABLE ActivityLocks (
-            ID TEXT PRIMARY KEY
-        );
     END
-
-    DELETE FROM ActivityLocks;
-
 ");
             await conn.ExecuteNonQueryAsync(createScript);
-
-            await conn.ExecuteNonQueryAsync(TemplateQuery.New($"PRAGMA journal_mode = 'wal'"));
         }
     }
 

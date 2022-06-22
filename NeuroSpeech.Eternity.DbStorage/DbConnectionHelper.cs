@@ -80,7 +80,14 @@ namespace NeuroSpeech.Eternity
                 {
                     var p = cmd.CreateParameter();
                     p.ParameterName = kvp.Key;
-                    p.Value = kvp.Value ?? DBNull.Value;
+                    if (kvp.Value is DateTimeOffset d)
+                    {
+                        p.Value = d.UtcDateTime;
+                    }
+                    else
+                    {
+                        p.Value = kvp.Value ?? DBNull.Value;
+                    }
                     cmd.Parameters.Add(p);
                 }
                 return r;
@@ -115,7 +122,14 @@ namespace NeuroSpeech.Eternity
                 {
                     var p = cmd.CreateParameter();
                     p.ParameterName = kvp.Key;
-                    p.Value = kvp.Value ?? DBNull.Value;
+                    if (kvp.Value is DateTimeOffset d)
+                    {
+                        p.Value = d.UtcDateTime;
+                    }
+                    else
+                    {
+                        p.Value = kvp.Value ?? DBNull.Value;
+                    }
                     cmd.Parameters.Add(p);
                 }
                 return r;
@@ -494,6 +508,9 @@ namespace NeuroSpeech.Eternity
                         return;
                     case TypeCode.Int32:
                         property.SetValue(target, new DateTimeOffset((long)(int)value, TimeSpan.Zero));
+                        return;
+                    case TypeCode.DateTime:
+                        property.SetValue(target, new DateTimeOffset(((DateTime)value).Ticks, TimeSpan.Zero));
                         return;
                 }
             }

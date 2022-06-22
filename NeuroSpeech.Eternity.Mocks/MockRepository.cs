@@ -78,6 +78,23 @@ namespace NeuroSpeech.Eternity
             return null;
         }
 
+        public async Task<(EternityEntity Workflow, EternityEntity Event)> GetEventAsync(string id, string name, string searchInInput)
+        {
+            await Task.Delay(10);
+            if (db.TryGetValue(id, out var w))
+            {
+                foreach (var item in db)
+                {
+                    var entity = item.Value;
+                    if (entity.ParentID == id && entity.Name == name && (entity.Input?.Contains(searchInInput) ?? false))
+                    {
+                        return (w, entity);
+                    }
+                }
+            }
+            return (null, null);
+        }
+
         public async Task<IAsyncDisposable> LockAsync(EternityEntity entity, TimeSpan maxTTL)
         {
             await Task.Delay(10);

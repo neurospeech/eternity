@@ -294,8 +294,7 @@ namespace NeuroSpeech.Eternity
 
         public async Task RaiseEventAsync(string id, string name, string result, bool throwIfNotFound = false)
         {
-            var now = clock.UtcNow;
-            var workflow = await repository.GetAsync(id);
+            var (workflow, existing) = await repository.GetEventAsync(id, nameof(WaitForExternalEventsAsync), Serialize(name));
             if (workflow == null)
             {
                 if (throwIfNotFound)
@@ -304,15 +303,6 @@ namespace NeuroSpeech.Eternity
                 }
                 return;
             }
-            if (workflow.CurrentWaitingID == null)
-            {
-                if (throwIfNotFound)
-                {
-                    throw new ArgumentException($"Workflow with {id} is not waiting for any event");
-                }
-                return;
-            }
-            var existing = await repository.GetAsync(workflow.CurrentWaitingID);
             if (existing == null) {
                 if (throwIfNotFound)
                 {
@@ -331,9 +321,8 @@ namespace NeuroSpeech.Eternity
                 EventName = name,
                 Value = result
             });
-
+            existing.Input = ""; // remove event names... 
             workflow.UtcETA = existing.UtcUpdated;
-            workflow.CurrentWaitingID = null;
             await repository.SaveAsync(workflow, existing);
         }
         
@@ -542,13 +531,12 @@ namespace NeuroSpeech.Eternity
             using var session = this.logger.BeginLogSession();
             session?.LogInformation($"Workflow {workflow.ID} waiting for an external event");
             var activity = CreateEntity(workflow, nameof(WaitForExternalEventsAsync), false, Empty, eta, workflow.CurrentUtc);
-
+            activity.Input = Serialize(names);
             var activityId = activity.ID;
             workflowEntity.UtcETA = eta;
             var result = await repository.GetAsync(activityId);
             if (result == null)
             {
-                workflowEntity.CurrentWaitingID = activityId;
                 await repository.SaveAsync(activity, workflowEntity);
             }
 
@@ -578,7 +566,6 @@ namespace NeuroSpeech.Eternity
                 var diff = eta - clock.UtcNow;
                 if (diff.TotalMilliseconds >0)
                 {
-                    workflowEntity.CurrentWaitingID = activityId;
                     await SaveWorkflow(workflowEntity, eta);
                 }
                 if (diff.TotalSeconds > 15)

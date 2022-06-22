@@ -64,13 +64,13 @@ namespace NeuroSpeech.Eternity
             {
                 var q = TemplateQuery.New(@$"INSERT OR REPLACE INTO EternityEntities(
                     ID, Name, Input, IsWorkflow, UtcETA, UtcCreated, UtcUpdated,
-                    Response, State, ParentID, Priority, CurrentWaitingID
+                    Response, State, ParentID, Priority
                     
                 ) VALUES (
                     {entity.ID},{entity.Name},{entity.Input},{entity.IsWorkflow},
                     {entity.UtcETA.UtcTicks}, {entity.UtcCreated.UtcTicks}, { entity.UtcUpdated.UtcTicks},
                     {entity.Response}, { entity.State}, {entity.ParentID},
-                    {entity.Priority}, {entity.CurrentWaitingID}
+                    {entity.Priority}
                 )");
                 parts.Add(q);
             }
@@ -117,6 +117,26 @@ namespace NeuroSpeech.Eternity
         {
             using var db = await Open();
             await db.ExecuteNonQueryAsync(TemplateQuery.New($"DELETE FROM EternityEntities WHERE ParentID={entity.ID}"));
+        }
+
+        public async Task<(EternityEntity? Workflow, EternityEntity? Event)> GetEventAsync(string id, string name, string searchInInput)
+        {
+            using var db = await Open();
+            var query = TemplateQuery.New(@$"
+            SELECT * FROM EternityEntities 
+                WHERE (ID = {id})
+                OR
+                (ParentID = {id} AND instr(Input, {searchInInput}) > 0)
+                ORDER BY IsWorkflow DESC, Priority DESC
+                LIMIT 2
+            ");
+
+            var list = await db.FromSqlAsync<EternityEntity>(query);
+            if (list.Count == 0)
+                return (null, null);
+            if (list.Count == 1)
+                return (list[0], null);
+            return (list[0], list[1]);
         }
     }
 }

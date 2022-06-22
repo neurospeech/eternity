@@ -24,12 +24,11 @@ namespace NeuroSpeech.Eternity
         Response TEXT,
         State TEXT,
         ParentID TEXT,
-        Priority INTEGER,
-        CurrentWaitingID TEXT
+        Priority INTEGER
     );
 
     CREATE INDEX IF NOT EXISTS IX_Workflows_ParentID
-    ON EternityEntities (ParentID) WHERE ParentID IS NOT NULL;
+    ON EternityEntities (ParentID, Priority) WHERE ParentID IS NOT NULL;
 
     CREATE INDEX IF NOT EXISTS IX_Workflows_UtcETA
     ON EternityEntities (UtcETA) WHERE IsWorkflow = 1;

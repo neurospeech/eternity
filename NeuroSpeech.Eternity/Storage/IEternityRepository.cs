@@ -19,6 +19,8 @@ namespace NeuroSpeech.Eternity.Storage
 
         Task<EternityEntity?> GetAsync(string? id);
 
+        Task<(EternityEntity? Workflow, EternityEntity? Event)> GetEventAsync(string id, string name, string searchInInput);
+
         Task SaveAsync(params EternityEntity[] entity);
 
         Task<string> CreateAsync(EternityEntity entity);

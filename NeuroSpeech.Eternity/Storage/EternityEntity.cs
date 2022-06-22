@@ -79,7 +79,5 @@ namespace NeuroSpeech.Eternity.Storage
         public string? ParentID { get; set; }
 
         public int Priority { get; set; }
-
-        public string? CurrentWaitingID { get; set; }
     }
 }

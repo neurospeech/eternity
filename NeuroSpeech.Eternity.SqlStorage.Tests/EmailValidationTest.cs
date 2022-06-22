@@ -60,7 +60,7 @@ namespace NeuroSpeech.Eternity.SqliteStorage.Tests
         [TestMethod]
         public async Task VerifyAsync()
         {
-            using var engine = new MockSqliteEngine((s) => {
+            using var engine = new MockSqlStrage((s) => {
                 s.AddSingleton<IEternityLogger, DiagnosticsLogger>();
             });
             var emailService = engine.EmailService;
@@ -97,7 +97,7 @@ namespace NeuroSpeech.Eternity.SqliteStorage.Tests
         [TestMethod]
         public async Task ResendAsync()
         {
-            using var engine = new MockSqliteEngine((s) => {
+            using var engine = new MockSqlStrage((s) => {
                 s.AddSingleton<IEternityLogger, DiagnosticsLogger>();
             });
 
@@ -150,7 +150,7 @@ namespace NeuroSpeech.Eternity.SqliteStorage.Tests
         [TestMethod]
         public async Task TimedOut()
         {
-            using var engine = new MockSqliteEngine();
+            using var engine = new MockSqlStrage();
 
             var emailService = engine.EmailService;
             var context = engine.Resolve<EternityContext>();
