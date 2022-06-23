@@ -20,10 +20,12 @@ namespace NeuroSpeech.Eternity.SqlStorage
         private readonly TimeSpan QueuePollInterval;
         private readonly string connectionString;
         private readonly IEternityClock clock;
+        private readonly Literal tableName;
 
         public EternitySqlStorage(
             string connectionString,
             IEternityClock clock,
+            string tableName = "EternityEntities",
             TimeSpan queuePollInterval = default)
         {
             this.QueuePollInterval = queuePollInterval.Ticks == 0
@@ -31,6 +33,7 @@ namespace NeuroSpeech.Eternity.SqlStorage
                 : queuePollInterval;
             this.connectionString = connectionString;
             this.clock = clock;
+            this.tableName = new Literal(tableName);
         }
 
         public async Task<SqlConnection> Open()
@@ -38,7 +41,7 @@ namespace NeuroSpeech.Eternity.SqlStorage
             var conn = new SqlConnection(connectionString);
             if (InitAsync == null)
             {
-                InitAsync = ModelCreator.CreateAsync(conn);
+                InitAsync = ModelCreator.CreateAsync(conn, tableName);
             }
             await InitAsync;
             return conn;
@@ -51,7 +54,7 @@ namespace NeuroSpeech.Eternity.SqlStorage
             var futureLock = now.AddMinutes(1);
             var query = TemplateQuery.New(@$"
                 SELECT TOP ({max}) *
-                FROM EternityEntities
+                FROM {tableName}
                 WHERE 
                     UtcETA < {now}
                     AND IsWorkflow=1
@@ -68,7 +71,7 @@ namespace NeuroSpeech.Eternity.SqlStorage
             if (ids.Any())
             {
                 await db.ExecuteNonQueryAsync(TemplateQuery.New(@$"
-                UPDATE EternityEntities
+                UPDATE {tableName}
                 SET
                     QueueTTL={futureLock}
                 WHERE
@@ -82,7 +85,7 @@ namespace NeuroSpeech.Eternity.SqlStorage
         {
             using var db = await Open();
             var idHash = GetHash(id);
-            var query = TemplateQuery.New($"SELECT * FROM EternityEntities WHERE ID = {id} AND IDHash={idHash}");
+            var query = TemplateQuery.New($"SELECT * FROM {tableName} WHERE ID = {id} AND IDHash={idHash}");
             var result = await db.FromSqlAsync<EternityEntity>(query, ignoreUnmatchedProperties: true);
             return result.FirstOrDefault();
         }
@@ -102,7 +105,7 @@ namespace NeuroSpeech.Eternity.SqlStorage
                 var idHash = GetHash(entity.ID);
                 var paretIDHash = GetHash(entity.ParentID);
                 var q = TemplateQuery.New(@$"
-                MERGE EternityEntities as Target 
+                MERGE {tableName} as Target 
                 USING ( 
                     SELECT * FROM (
                         VALUES (
@@ -160,7 +163,7 @@ namespace NeuroSpeech.Eternity.SqlStorage
             {
                 using var db = await Open();
                 var update = TemplateQuery.New(@$"
-                    UPDATE EternityEntities
+                    UPDATE {tableName}
                     SET
                         LockToken={token},
                         LockTTL={lockTTL}
@@ -173,7 +176,7 @@ namespace NeuroSpeech.Eternity.SqlStorage
                     return new AsyncDisposable(async () => {
                         using var db2 = await Open();
                         var release = TemplateQuery.New(@$"
-                        UPDATE EternityEntities
+                        UPDATE {tableName}
                         SET
                             LockToken = NULL,
                             LockTTL = NULL
@@ -193,7 +196,7 @@ namespace NeuroSpeech.Eternity.SqlStorage
         {
             using var db = await Open();
             var idHash = GetHash(entity.ID);
-            await db.ExecuteNonQueryAsync(TemplateQuery.New(@$"DELETE FROM EternityEntities WHERE 
+            await db.ExecuteNonQueryAsync(TemplateQuery.New(@$"DELETE FROM {tableName} WHERE 
                 (ID={entity.ID} AND IDHash={idHash}) 
                 OR (ParentID={entity.ID} AND ParentIDHash={idHash})"));
         }
@@ -202,7 +205,7 @@ namespace NeuroSpeech.Eternity.SqlStorage
         {
             using var db = await Open();
             var idHash = GetHash(entity.ID);
-            await db.ExecuteNonQueryAsync(TemplateQuery.New(@$"DELETE FROM EternityEntities 
+            await db.ExecuteNonQueryAsync(TemplateQuery.New(@$"DELETE FROM {tableName} 
                 WHERE ParentID={entity.ID}
                 AND ParentIDHash={idHash}"));
         }
@@ -212,7 +215,7 @@ namespace NeuroSpeech.Eternity.SqlStorage
             using var db = await Open();
             var idHash = GetHash(id);
             var query = TemplateQuery.New(@$"
-            SELECT TOP 2 * FROM EternityEntities 
+            SELECT TOP 2 * FROM {tableName} 
                 WHERE (ID = {id} AND IDHash={idHash})
                 OR
                 (ParentID = {id} AND ParentIDHash = {idHash}

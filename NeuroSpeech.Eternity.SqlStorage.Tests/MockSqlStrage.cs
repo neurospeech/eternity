@@ -35,7 +35,7 @@ namespace NeuroSpeech.Eternity.SqliteStorage.Tests
                 IntegratedSecurity = true,
                 ApplicationName = "EntityFramework"
             }).ToString();
-            return new EternitySqlStorage(ConnectionString, clock, TimeSpan.FromMilliseconds(100));
+            return new EternitySqlStorage(ConnectionString, clock, "TestEternityEntities", TimeSpan.FromMilliseconds(100));
         }
 
         public override void Dispose()

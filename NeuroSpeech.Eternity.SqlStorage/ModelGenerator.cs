@@ -9,13 +9,13 @@ namespace NeuroSpeech.Eternity
 {
     internal class ModelCreator
     {
-        internal static async Task CreateAsync(SqlConnection conn)
+        internal static async Task CreateAsync(SqlConnection conn, TemplatedQuery.Literal tableName)
         {
             // create workflows table..
             var createScript = TemplateQuery.New(@$"
-    IF object_id('EternityEntities') is null
+    IF object_id('{tableName}') is null
     BEGIN
-        CREATE TABLE EternityEntities (
+        CREATE TABLE [{tableName}] (
             [nID] BIGINT IDENTITY(1,1) NOT NULL,
             ID nvarchar(max),
             IDHash nvarchar(400),
@@ -38,25 +38,18 @@ namespace NeuroSpeech.Eternity
             [nID] ASC
         ));
 
-        CREATE INDEX IX_Workflows_IDHash
-        ON EternityEntities (IDHash) INCLUDE (ID);
+        CREATE INDEX IX_{tableName}_IDHash
+        ON {tableName} (IDHash) INCLUDE (ID);
 
-        CREATE INDEX IX_Workflows_ParentIDHash
-        ON EternityEntities (ParentIDHash, Priority DESC) INCLUDE (ParentID) WHERE ParentIDHash IS NOT NULL;
+        CREATE INDEX IX_{tableName}_ParentIDHash
+        ON {tableName} (ParentIDHash, Priority DESC) INCLUDE (ParentID) WHERE ParentIDHash IS NOT NULL;
 
-        CREATE INDEX IX_Workflows_UtcETA
-        ON EternityEntities (UtcETA, Priority DESC) WHERE IsWorkflow = 1;
+        CREATE INDEX IX_{tableName}_UtcETA
+        ON {tableName} (UtcETA, Priority DESC) WHERE IsWorkflow = 1;
 
     END
 ");
             await conn.ExecuteNonQueryAsync(createScript);
         }
-    }
-
-    public class ActivityLock
-    {
-        public string ID { get; set; }
-        public DateTime ETA { get; set; }
-
     }
 }
