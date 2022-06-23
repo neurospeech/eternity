@@ -220,6 +220,14 @@ namespace NeuroSpeech.Eternity
             return repository.SaveAsync(workflow.Entity);
         }
 
+        public T ResolveSingleton<T>()
+        {
+            var service = this.services.GetService(typeof(T));
+            if (service is not T serviceInstance)
+                throw new ArgumentException($"No service registered for {typeof(T).FullName}");
+            return serviceInstance;
+        }
+
         private async Task RunWorkflowAsync(EternityEntity entity, CancellationToken arg2)
         {
             using var session = this.logger.BeginLogSession();
