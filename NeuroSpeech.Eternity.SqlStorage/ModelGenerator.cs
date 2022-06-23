@@ -44,13 +44,13 @@ namespace NeuroSpeech.Eternity
             [nID] ASC
         ));
 
-        CREATE INDEX [{schemaName}].[IX_{tableName}_IDHash]
+        CREATE INDEX [IX_{schemaName}_{tableName}_IDHash]
         ON [{schemaName}].[{tableName}] (IDHash) INCLUDE (ID);
 
-        CREATE INDEX [{schemaName}].[IX_{tableName}_ParentIDHash]
+        CREATE INDEX [IX_{schemaName}_{tableName}_ParentIDHash]
         ON [{schemaName}].[{tableName}] (ParentIDHash, Priority DESC) INCLUDE (ParentID) WHERE ParentIDHash IS NOT NULL;
 
-        CREATE INDEX [{schemaName}].[IX_{tableName}_UtcETA]
+        CREATE INDEX [IX_{schemaName}_{tableName}_UtcETA]
         ON [{schemaName}].[{tableName}] (UtcETA, Priority DESC) WHERE IsWorkflow = 1;
 
     END
