@@ -40,7 +40,7 @@ namespace NeuroSpeech.Eternity
             QueueTTL DATETIME2 NULL,
             LockToken nvarchar(400) NULL,
             LockTTL DATETIME2 NULL,
-        CONSTRAINT [PK_History] PRIMARY KEY CLUSTERED (
+        CONSTRAINT [{schemaName}_PK_{tableName}] PRIMARY KEY CLUSTERED (
             [nID] ASC
         ));
 
