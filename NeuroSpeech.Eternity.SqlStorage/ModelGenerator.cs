@@ -15,10 +15,11 @@ namespace NeuroSpeech.Eternity
         {
             // create workflows table..
             var createScript = TemplateQuery.New(@$"
-    IF object_id('[{schemaName}]') is null
+    IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = '{schemaName}')
     BEGIN
-        EXEC ('CREATE SCHEMA {schemaName};')
-    END;
+        EXEC('CREATE SCHEMA [{schemaName}]')
+    END
+
     IF object_id('[{schemaName}].[{tableName}]') is null
     BEGIN
         CREATE TABLE [{schemaName}].[{tableName}] (
