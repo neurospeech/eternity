@@ -9,13 +9,19 @@ namespace NeuroSpeech.Eternity
 {
     internal class ModelCreator
     {
-        internal static async Task CreateAsync(SqlConnection conn, TemplatedQuery.Literal tableName)
+        internal static async Task CreateAsync(SqlConnection conn, 
+            Literal schemaName,
+            Literal tableName)
         {
             // create workflows table..
             var createScript = TemplateQuery.New(@$"
-    IF object_id('{tableName}') is null
+    IF object_id('[{schemaName}]') is null
     BEGIN
-        CREATE TABLE [{tableName}] (
+        EXEC ('CREATE SCHEMA {schemaName};')
+    END;
+    IF object_id('[{schemaName}].[{tableName}]') is null
+    BEGIN
+        CREATE TABLE [{schemaName}].[{tableName}] (
             [nID] BIGINT IDENTITY(1,1) NOT NULL,
             ID nvarchar(max),
             IDHash nvarchar(400),
@@ -39,13 +45,13 @@ namespace NeuroSpeech.Eternity
         ));
 
         CREATE INDEX IX_{tableName}_IDHash
-        ON {tableName} (IDHash) INCLUDE (ID);
+        ON [{schemaName}].[{tableName}] (IDHash) INCLUDE (ID);
 
         CREATE INDEX IX_{tableName}_ParentIDHash
-        ON {tableName} (ParentIDHash, Priority DESC) INCLUDE (ParentID) WHERE ParentIDHash IS NOT NULL;
+        ON [{schemaName}].[{tableName}] (ParentIDHash, Priority DESC) INCLUDE (ParentID) WHERE ParentIDHash IS NOT NULL;
 
         CREATE INDEX IX_{tableName}_UtcETA
-        ON {tableName} (UtcETA, Priority DESC) WHERE IsWorkflow = 1;
+        ON [{schemaName}].[{tableName}] (UtcETA, Priority DESC) WHERE IsWorkflow = 1;
 
     END
 ");

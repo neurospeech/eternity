@@ -35,7 +35,8 @@ namespace NeuroSpeech.Eternity.SqliteStorage.Tests
                 IntegratedSecurity = true,
                 ApplicationName = "EntityFramework"
             }).ToString();
-            return new EternitySqlStorage(ConnectionString, clock, "TestEternityEntities", TimeSpan.FromMilliseconds(100));
+            return new EternitySqlStorage(ConnectionString, clock, "TestEternityEntities",
+                "W1", TimeSpan.FromMilliseconds(100));
         }
 
         public override void Dispose()
@@ -65,10 +66,14 @@ namespace NeuroSpeech.Eternity.SqliteStorage.Tests
             Execute($"CREATE DATABASE [{DBName}] ON PRIMARY (NAME = {DBName}_data, FILENAME='{DbFile}') LOG ON (NAME={DBName}_Log, FILENAME='{LogFile}')");
         }
 
-        private void Execute(string command)
+        private void Execute(string command, string? db = null)
         {
             using (var c = new SqlConnection($"server=(localdb)\\MSSQLLocalDB"))
             {
+                if (db != null)
+                {
+                    c.ConnectionString += ";database=" + db;
+                }
                 c.Open();
 
 
