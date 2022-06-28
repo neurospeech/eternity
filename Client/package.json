@@ -1,0 +1,23 @@
+{
+  "name": "@neurospeech/eternity",
+  "version": "1.0.1",
+  "description": "Apps",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "postversion": "git push --follow-tags"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/neurospeech/eternity.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bundledDependencies": true,
+  "dependencies": {
+    "@web-atoms/core": "^2.1.384",
+    "@web-atoms/entity": "^2.2.71",
+    "@web-atoms/web-controls": "^2.1.287",
+    "chart.js": "^3.8.0"
+  }
+}
