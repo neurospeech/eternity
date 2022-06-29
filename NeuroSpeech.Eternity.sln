@@ -30,8 +30,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NeuroSpeech.Eternity.SqlSto
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NeuroSpeech.Eternity.SqlStorage.Tests", "NeuroSpeech.Eternity.SqlStorage.Tests\NeuroSpeech.Eternity.SqlStorage.Tests.csproj", "{F5A8578E-7705-44B3-BC54-0BCE4C80851E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NeuroSpeech.Eternity.WebStatus", "NeuroSpeech.Eternity.WebStatus\NeuroSpeech.Eternity.WebStatus.csproj", "{B20B3097-2E1E-49B6-AEDD-4CE523C58F37}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -78,10 +76,6 @@ Global
 		{F5A8578E-7705-44B3-BC54-0BCE4C80851E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F5A8578E-7705-44B3-BC54-0BCE4C80851E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F5A8578E-7705-44B3-BC54-0BCE4C80851E}.Release|Any CPU.Build.0 = Release|Any CPU
-		{B20B3097-2E1E-49B6-AEDD-4CE523C58F37}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B20B3097-2E1E-49B6-AEDD-4CE523C58F37}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B20B3097-2E1E-49B6-AEDD-4CE523C58F37}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B20B3097-2E1E-49B6-AEDD-4CE523C58F37}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

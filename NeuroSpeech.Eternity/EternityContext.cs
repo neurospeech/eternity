@@ -103,6 +103,7 @@ namespace NeuroSpeech.Eternity
             }
             await repository.SaveAsync(entity);
             NewWorkflow?.Invoke(this, EventArgs.Empty);
+            logger?.Log(System.Diagnostics.TraceEventType.Information, $"New workflow created {id}");
             Trigger();
             return id;
         }
@@ -264,7 +265,7 @@ namespace NeuroSpeech.Eternity
                 {
                     entity.State = EternityEntityState.Suspended;
                     await repository.SaveAsync(entity);
-                    session?.LogInformation($"Workflow {entity.ID} suspended.");
+                    session?.LogVerbose($"Workflow {entity.ID} suspended.");
                     return;
                 }
                 catch (Exception ex)
@@ -274,12 +275,12 @@ namespace NeuroSpeech.Eternity
                     entity.UtcUpdated = clock.UtcNow;
                     entity.UtcETA = clock.UtcNow.Add(instance.PreserveTime);
                     entity.Priority = -1;
-                    session?.LogInformation($"Workflow {entity.ID} failed. {ex.ToString()}");
+                    session?.LogError($"Workflow {entity.ID} failed. {ex.ToString()}");
                 }
                 if (entity.ParentID != null)
                 {
                     await RaiseEventAsync(entity.ParentID, entity.ID!, "Success");
-                    session?.LogInformation($"Workflow {entity.ID} Raised Event for Parent {entity.ParentID}");
+                    session?.LogVerbose($"Workflow {entity.ID} Raised Event for Parent {entity.ParentID}");
                 }
 
                 if (entity.ParentID != null)
@@ -354,14 +355,18 @@ namespace NeuroSpeech.Eternity
             {
                 if (throwIfNotFound)
                 {
-                    throw new ArgumentException($"Workflow with {id} not found");
+                    var error = $"Could not raise event {name}, Workflow with {id} not found";
+                    logger.LogError(error);
+                    throw new ArgumentException(error);
                 }
                 return;
             }
             if (existing == null) {
                 if (throwIfNotFound)
                 {
-                    throw new ArgumentException($"Workflow with {id} is not waiting for any event");
+                    var error = $"Workflow with {id} is not waiting for any event";
+                    logger.LogError(error);
+                    throw new ArgumentException(error);
                 }
                 return;
             }
@@ -436,7 +441,7 @@ namespace NeuroSpeech.Eternity
 
                 await using var entityLock = await repository.LockAsync(entity, MaxLock);
 
-                session?.LogInformation($"Workflow {ID} Scheduling new activity {methodName}");                
+                session?.LogVerbose($"Workflow {ID} Scheduling new activity {methodName}");                
                 var diff = after - clock.UtcNow;
                 if (diff.TotalMilliseconds > 0)
                 {
@@ -462,7 +467,7 @@ namespace NeuroSpeech.Eternity
         {
             using var session = this.logger.BeginLogSession();
 
-            session?.LogInformation($"Wrokflow {workflow.ID} executing activity {method.Name}");
+            session?.LogVerbose($"Wrokflow {workflow.ID} executing activity {method.Name}");
 
             var type = this.EmitAvailable ? workflow.GetType().BaseType : workflow.GetType();
 
@@ -472,7 +477,7 @@ namespace NeuroSpeech.Eternity
 
                 using var scope = scopeFactory?.CreateScope(services);
 
-                session?.LogInformation($"Wrokflow {workflow.ID} running activity {method.Name}");
+                session?.LogVerbose($"Wrokflow {workflow.ID} running activity {method.Name}");
                 workflow.IsActivityRunning = true;
 
                 BuildParameters(method, parameters, scope?.ServiceProvider ?? services);
@@ -491,7 +496,7 @@ namespace NeuroSpeech.Eternity
                 workflow.SetCurrentTime(now);
                 workflow.Entity.UtcUpdated = now;
                 await repository.SaveAsync(key, workflow.Entity);
-                session?.LogInformation($"Wrokflow {workflow.ID} executing activity finished");
+                session?.LogVerbose($"Wrokflow {workflow.ID} executing activity finished");
                 return;
 
             }
@@ -587,7 +592,7 @@ namespace NeuroSpeech.Eternity
             var workflowEntity = workflow.Entity;
 
             using var session = this.logger.BeginLogSession();
-            session?.LogInformation($"Workflow {workflow.ID} waiting for an external event");
+            session?.LogVerbose($"Workflow {workflow.ID} waiting for an external event");
             var activity = CreateEntity(workflow, nameof(WaitForExternalEventsAsync), false, Empty, eta, workflow.CurrentUtc);
             activity.Input = Serialize(names);
             activity.Priority = workflow.WaitCount++;
@@ -613,12 +618,12 @@ namespace NeuroSpeech.Eternity
                         workflow.SetCurrentTime(result.UtcUpdated);
                         await SaveWorkflow(workflowEntity, eta);
                         var er = Deserialize<EventResult>(result.Response)!;
-                        session?.LogInformation($"Workflow {workflow.ID} waiting for an external event finished {result.Response}");
+                        session?.LogVerbose($"Workflow {workflow.ID} waiting for an external event finished {result.Response}");
                         return (er.EventName, er.Value);
                     case EternityEntityState.Failed:
                         workflow.SetCurrentTime(result.UtcUpdated);
                         await SaveWorkflow(workflowEntity, eta);
-                        session?.LogInformation($"Workflow {workflow.ID} waiting for an external event failed {result.Response}");
+                        session?.LogVerbose($"Workflow {workflow.ID} waiting for an external event failed {result.Response}");
                         throw new ActivityFailedException(result.Response!);
                 }
 

@@ -10,6 +10,11 @@ namespace NeuroSpeech.Eternity
             => logger == null
                 ? null
                 : new LoggerSession(logger);
+
+        public static void LogError(this IEternityLogger? logger, string message)
+        {
+            logger?.Log(System.Diagnostics.TraceEventType.Error, message);
+        }
     }
 
     public class LoggerSession : System.IDisposable
