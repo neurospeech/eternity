@@ -355,10 +355,11 @@ namespace NeuroSpeech.Eternity
             {
                 if (throwIfNotFound)
                 {
-                    var error = $"Could not raise event {name}, Workflow with {id} not found";
+                    var error = $"Could not raise event {name}, Workflow {id} not found";
                     logger.LogError(error);
                     throw new ArgumentException(error);
                 }
+                logger?.Log(System.Diagnostics.TraceEventType.Warning, $"Could not raise event {name}, Workflow {id} not found");
                 return;
             }
             if (existing == null) {
