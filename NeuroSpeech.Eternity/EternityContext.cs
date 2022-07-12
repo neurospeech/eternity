@@ -375,6 +375,7 @@ namespace NeuroSpeech.Eternity
                 Trigger(existing.ID);
                 return;
             }
+            logger?.Log(System.Diagnostics.TraceEventType.Information, $"Raising event {name} for {id}");
             existing.UtcUpdated = clock.UtcNow;
             existing.State = EternityEntityState.Completed;
             // existing.UtcETA = existing.UtcUpdated;
