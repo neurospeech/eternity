@@ -22,7 +22,7 @@ Long running workflows with ability to suspend and replay the workflow in future
 5. Activities can be scheduled to be called in future
 6. Support for external events, workflow can wait for external events
 7. Really very large workflow supports, duration of waiting can have timeout for days/months/weeks. This allows in creating workflow for monthly/yearly memberships.
-8. Abstract Storage - you can create your own storage, in memory Mock storage, Sqlite Storage (for mobile) and Azure Table Storage is included.
+8. Abstract Storage - you can create your own storage, in memory Mock storage, Sqlite Storage (for mobile) and Sql Server Storage is included.
 9. Unit testable - Mocks package contains useful mocks to unit test your workflows.
 10. Support for non deterministic workflows, activities are isolated by parameters and time of execution, (you can also make Activity unique) so same activity method with same parameter anywhere in the workflow will execute only once and will give same result.
 11. Workflow can wait for multiple events, and when you raise an event, it will optionally throw an exception if workflow is not waiting.
