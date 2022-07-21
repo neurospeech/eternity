@@ -5,8 +5,6 @@ VisualStudioVersion = 17.0.32126.317
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NeuroSpeech.Eternity", "NeuroSpeech.Eternity\NeuroSpeech.Eternity.csproj", "{C3B09F1A-0E85-4752-85EB-A8BB66886CD9}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NeuroSpeech.Eternity.AzureStorage", "NeuroSpeech.Eternity.AzureStorage\NeuroSpeech.Eternity.AzureStorage.csproj", "{BDE0931A-B930-4DD3-8CF5-6AF9FA0E4F57}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NeuroSpeech.Eternity.Mocks", "NeuroSpeech.Eternity.Mocks\NeuroSpeech.Eternity.Mocks.csproj", "{9B9DA7FB-1E07-446F-85F8-BD93294211AE}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NeuroSpeech.Eternity.Tests", "NeuroSpeech.Eternity.Tests\NeuroSpeech.Eternity.Tests.csproj", "{E5BBCBA9-42DD-43BE-B005-F9975F30F069}"
@@ -48,10 +46,6 @@ Global
 		{9B9DA7FB-1E07-446F-85F8-BD93294211AE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9B9DA7FB-1E07-446F-85F8-BD93294211AE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9B9DA7FB-1E07-446F-85F8-BD93294211AE}.Release|Any CPU.Build.0 = Release|Any CPU
-		{E5BBCBA9-42DD-43BE-B005-F9975F30F069}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{E5BBCBA9-42DD-43BE-B005-F9975F30F069}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{E5BBCBA9-42DD-43BE-B005-F9975F30F069}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{E5BBCBA9-42DD-43BE-B005-F9975F30F069}.Release|Any CPU.Build.0 = Release|Any CPU
 		{ACDDD68E-0813-408E-9326-D3CCBD24688D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{ACDDD68E-0813-408E-9326-D3CCBD24688D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{ACDDD68E-0813-408E-9326-D3CCBD24688D}.Release|Any CPU.ActiveCfg = Release|Any CPU
