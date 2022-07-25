@@ -29,7 +29,8 @@ namespace NeuroSpeech.Eternity.SqliteStorage.Tests
             MySqlServer.Instance.StartServer();
             this.ConnectionString = MySqlServer.Instance.GetConnectionString();
             CreateDatabase("db1");
-            return new EternityMySqlStorage(MySqlServer.Instance.GetConnectionString("db1"), clock, TimeSpan.FromMilliseconds(100));
+            return new EternityMySqlStorage(
+                MySqlServer.Instance.GetConnectionString("db1"), clock, "Workflows", TimeSpan.FromMilliseconds(100));
         }
 
         public override void Dispose()

@@ -23,7 +23,7 @@ namespace NeuroSpeech.Eternity
         private readonly TimeSpan QueuePollInterval;
         private readonly string connectionString;
         private readonly IEternityClock clock;
-        private readonly string tableName;
+        private readonly Literal tableName;
 
         public EternityMySqlStorage(
             string connectionString, 
@@ -36,7 +36,7 @@ namespace NeuroSpeech.Eternity
                 : queuePollInterval;
             this.connectionString = connectionString;
             this.clock = clock;
-            this.tableName = tableName;
+            this.tableName = new Literal(tableName);
         }
 
         public async Task<MySqlConnection> Open()
@@ -95,7 +95,7 @@ namespace NeuroSpeech.Eternity
         {
             using var db = await Open();
             var idHash = GetHash(id);
-            var query = TemplateQuery.New($"SELECT * FROM EternityEntities WHERE IDHash = {idHash} ID = {id}");
+            var query = TemplateQuery.New($"SELECT * FROM {tableName} WHERE IDHash = {idHash} AND ID = {id}");
             var result = await db.FromSqlAsync<MySqlEternityEntity>(query);
             return result.FirstOrDefault();
         }
@@ -105,18 +105,17 @@ namespace NeuroSpeech.Eternity
             var parts = new TemplateFragments(";");
             foreach(var entity in entities)
             {
-                var idHash = GetHash(entity.ID);
+                var id = entity.ID;
+                var idHash = GetHash(id);
                 var paretIDHash = GetHash(entity.ParentID);
-                var q = TemplateQuery.New(@$"INSERT OR REPLACE INTO EternityEntities(
-                    ID, Name, Input, IsWorkflow, UtcETA, UtcCreated, UtcUpdated,
-                    Response, State, ParentID, Priority
-                    
-                ) VALUES (
-                    {entity.ID},{entity.Name},{entity.Input},{entity.IsWorkflow},
-                    {entity.UtcETA.UtcTicks}, {entity.UtcCreated.UtcTicks}, { entity.UtcUpdated.UtcTicks},
-                    {entity.Response}, { entity.State}, {entity.ParentID},
-                    {entity.Priority}
-                )");
+                var q = TemplateQuery.New(@$"
+    CALL Save{tableName}(
+            {entity.ID}, {idHash},{entity.Name},{entity.Input},{entity.IsWorkflow},
+            {entity.UtcETA.UtcTicks}, {entity.UtcCreated.UtcTicks}, {entity.UtcUpdated.UtcTicks},
+            {entity.Response}, {entity.State}, {entity.ParentID}, {paretIDHash},
+            {entity.Priority})
+    
+");
                 parts.Add(q);
             }
 
@@ -131,19 +130,38 @@ namespace NeuroSpeech.Eternity
 
         public async Task<IAsyncDisposable> LockAsync(EternityEntity entity, TimeSpan maxTTL)
         {
-            var start = clock.UtcNow;
+            var now = clock.UtcNow.UtcDateTime;
+            var start = now;
             var end = start.Add(maxTTL);
-            while(start < end)
+            var token = Guid.NewGuid().ToString("N");
+            var id = entity.ID;
+            var idHash = GetHash(id);
+            var lockTTL = now.AddMinutes(1);
+            while (start < end)
             {
                 using var db = await Open();
-                var q = TemplateQuery.New($"SELECT * FROM ActivityLocks WHERE ID={entity.ID}");
-                var l = await db.FromSqlAsync<ActivityLock>(q);
-                if (l.Count == 0)
+                var update = TemplateQuery.New(@$"
+                    UPDATE {tableName}
+                    SET
+                        LockToken={token},
+                        LockTTL={lockTTL}
+                    WHERE
+                        IDHash={idHash} AND ID={id} AND (LockTTL IS NULL OR LockTTL < {now})
+");
+                int count = await db.ExecuteNonQueryAsync(update);
+                if (count > 0)
                 {
-                    await db.ExecuteNonQueryAsync(TemplateQuery.New($"INSERT INTO ActivityLocks(ID, ETA) VALUES ({entity.ID}, {1})"));
                     return new AsyncDisposable(async () => {
                         using var db2 = await Open();
-                        await db2.ExecuteNonQueryAsync(TemplateQuery.New($"DELETE FROM ActivityLocks WHERE ID={entity.ID}"));
+                        var release = TemplateQuery.New(@$"
+                        UPDATE {tableName}
+                        SET
+                            LockToken = NULL,
+                            LockTTL = NULL
+                        WHERE
+                            IDHash={idHash} AND ID={id} AND LockToken={token}
+");
+                        await db2.ExecuteNonQueryAsync(release);
                     });
                 }
                 await Task.Delay(this.QueuePollInterval);
@@ -155,28 +173,41 @@ namespace NeuroSpeech.Eternity
         public async Task DeleteAsync(EternityEntity entity)
         {
             using var db = await Open();
-            await db.ExecuteNonQueryAsync(TemplateQuery.New($"DELETE FROM EternityEntities WHERE ID={entity.ID} OR ParentID={entity.ID}"));
+            var idHash = GetHash(entity.ID);
+            var parentIDHash = GetHash(entity.ParentID);
+            await db.ExecuteNonQueryAsync(TemplateQuery.New(@$"
+                DELETE FROM {tableName}
+                WHERE (IDHash={idHash} AND ID={entity.ID})
+                    OR (ParentIDHash={parentIDHash} AND ParentID={entity.ID})
+            "));
         }
 
         public async Task DeleteChildrenAsync(EternityEntity entity)
         {
             using var db = await Open();
-            await db.ExecuteNonQueryAsync(TemplateQuery.New($"DELETE FROM EternityEntities WHERE ParentID={entity.ID}"));
+            var idHash = GetHash(entity.ID);
+            await db.ExecuteNonQueryAsync(TemplateQuery.New(@$"
+                DELETE FROM {tableName}
+                WHERE (ParentIDHash={idHash} AND ParentID={entity.ID})
+            "));
         }
 
         public async Task<(EternityEntity? Workflow, EternityEntity? Event)> GetEventAsync(string id, string name, string searchInInput)
         {
             using var db = await Open();
+            var idHash = GetHash(id);
             var query = TemplateQuery.New(@$"
-            SELECT * FROM EternityEntities 
-                WHERE (ID = {id})
+            SELECT * FROM {tableName} 
+                WHERE (ID = {id} AND IDHash={idHash})
                 OR
-                (ParentID = {id} AND Name={name} AND (instr(Input, {searchInInput}) > 0))
+                (ParentID = {id} AND ParentIDHash = {idHash}
+                    AND Name = {name}
+                    AND (CHARINDEX({searchInInput}, Input)> 0))
                 ORDER BY IsWorkflow DESC, Priority DESC
                 LIMIT 2
             ");
 
-            var list = await db.FromSqlAsync<EternityEntity>(query);
+            var list = await db.FromSqlAsync<EternityEntity>(query, ignoreUnmatchedProperties: true);
             if (list.Count == 0)
                 return (null, null);
             if (list.Count == 1)
