@@ -1,0 +1,32 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="MySqlInstance\errmsg.sys" />
+	<EmbeddedResource Include="MySqlInstance\mysqld.exe" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.1.0" />
+    <PackageReference Include="MSTest.TestAdapter" Version="2.2.8" />
+    <PackageReference Include="MSTest.TestFramework" Version="2.2.8" />
+    <PackageReference Include="coverlet.collector" Version="3.1.2" />
+	  <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="6.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\NeuroSpeech.Eternity.DbStorage\NeuroSpeech.Eternity.DbStorage.csproj" />
+    <ProjectReference Include="..\NeuroSpeech.Eternity.DependencyInjectionExtensions\NeuroSpeech.Eternity.DependencyInjectionExtensions.csproj" />
+    <ProjectReference Include="..\NeuroSpeech.Eternity.Mocks\NeuroSpeech.Eternity.Mocks.csproj" />
+    <ProjectReference Include="..\NeuroSpeech.Eternity.MySqlStorage\NeuroSpeech.Eternity.MySqlStorage.csproj" />
+    <ProjectReference Include="..\NeuroSpeech.Eternity\NeuroSpeech.Eternity.csproj" />
+  </ItemGroup>
+
+</Project>
