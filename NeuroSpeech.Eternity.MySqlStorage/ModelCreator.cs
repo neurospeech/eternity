@@ -73,7 +73,7 @@ namespace NeuroSpeech.Eternity
                 Name = pName,
                 Input = pInput,
                 IsWorkflow = pIsWorkflow,
-                QueueTTL = CASE WHEN pUtcETA <> Target.UtcETA THEN NULL ELSE QueueTTL END,
+                QueueTTL = IF(pUtcETA <> UtcETA,NULL,QueueTTL),
                 UtcETA = pUtcETA,
                 UtcCreated = pUtcCreated,
                 UtcUpdated = pUtcUpdated,
@@ -83,7 +83,7 @@ namespace NeuroSpeech.Eternity
                 ParentIDHash = pParentIDHash,
                 Priority = pPriority
             WHERE
-            IDHash=pIDHash AND ID=pID
+            IDHash=pIDHash AND ID=pID;
         ELSE
             INSERT INTO {tableName} (
                 ID, IDHash, Name, Input, IsWorkflow, UtcETA, UtcCreated, UtcUpdated,
@@ -93,9 +93,9 @@ namespace NeuroSpeech.Eternity
                 pUtcTicks, pUtcTicks, pUtcTicks,
                 pResponse, pState, pParentID, pParentIDHash,
                 pPriority
-            )
-        END IF
-    END
+            );
+        END IF;
+    END;
 ");
             await conn.ExecuteNonQueryAsync(createScript);
 
