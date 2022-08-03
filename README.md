@@ -44,4 +44,6 @@ Long running workflows with ability to suspend and replay the workflow in future
 
 ## Other Interesting Projects by NeuroSpeech
 1. [YantraJS - JavaScript engine for .NET with latest features](https://github.com/yantrajs/yantra)
+2. [Entity Access Control List framework over Entity Framework Core with Audit and Typed Events](https://github.com/neurospeech/entity-access-control)
 2. [Automatic Migrations for EF Core](https://github.com/neurospeech/ef-core-automatic-migration)
+3. [RetroCoreFit - REST Library similar to Retrofit for .NET Core](https://github.com/neurospeech/retro-core-fit)
