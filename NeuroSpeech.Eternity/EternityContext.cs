@@ -35,6 +35,18 @@ namespace NeuroSpeech.Eternity
 
         public CancellationToken Cancellation { get; private set; }
 
+        private void SetMaxPollingGap(TimeSpan ts)
+        {
+            if (ts.TotalMinutes > 5)
+                return;
+            if (ts.TotalMilliseconds <= 0)
+            {
+                Trigger();
+                return;
+            }
+            waiter.ClearAfter(ts);
+        }
+
         public EternityContext(
             IServiceProvider services,
             IEternityClock clock,
@@ -104,7 +116,8 @@ namespace NeuroSpeech.Eternity
             await repository.SaveAsync(entity);
             NewWorkflow?.Invoke(this, EventArgs.Empty);
             logger?.Log(System.Diagnostics.TraceEventType.Information, $"New workflow created {id}");
-            Trigger();
+            var diff = eta - DateTimeOffset.UtcNow;
+            SetMaxPollingGap(diff);
             return id;
         }
 
@@ -335,6 +348,7 @@ namespace NeuroSpeech.Eternity
             if (diff.TotalSeconds > 15)
             {
                 await SaveWorkflow(entity, timeout);
+                SetMaxPollingGap(diff);
                 throw new ActivitySuspendedException();
             }
 
@@ -451,6 +465,7 @@ namespace NeuroSpeech.Eternity
 
                     if (diff.TotalSeconds > 15)
                     {
+                        SetMaxPollingGap(diff);
                         throw new ActivitySuspendedException();
                     }
 
@@ -636,6 +651,7 @@ namespace NeuroSpeech.Eternity
                 }
                 if (diff.TotalSeconds > 15)
                 {
+                    SetMaxPollingGap(diff);
                     throw new ActivitySuspendedException();
                 }
 

@@ -15,10 +15,26 @@ namespace NeuroSpeech.Eternity
     {
 
         private CancellationTokenSource? trigger;
+        private TimeSpan? lastCancelAfter;
 
         public void Clear()
         {
             trigger?.Cancel();
+            trigger = null;
+        }
+
+        public void ClearAfter(TimeSpan after)
+        {
+            var last = lastCancelAfter;
+            if (last != null)
+            {
+                if(last.Value.TotalMilliseconds < after.TotalMilliseconds)
+                {
+                    return;
+                }
+            }
+            lastCancelAfter = after;
+            trigger?.CancelAfter(after);
         }
 
         public Task WaitAsync(
@@ -34,13 +50,17 @@ namespace NeuroSpeech.Eternity
             int milliSeconds,
             CancellationToken cancelToken = default) {
             var t = new TaskCompletionSource<int>();
+            lastCancelAfter = TimeSpan.FromMilliseconds(milliSeconds);
             var ct = trigger = new CancellationTokenSource(milliSeconds);
             ct.Token.Register(() => {
                 t.TrySetResult(1);
+                lastCancelAfter = null;
             });
             cancelToken.Register(() => {
                 t.TrySetCanceled();
+                lastCancelAfter = null;
             });
+
             return t.Task;
         }
 
