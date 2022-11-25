@@ -42,10 +42,10 @@ namespace NeuroSpeech.Eternity
         /// <param name="context"></param>
         /// <param name="options"></param>
         /// <returns></returns>
-        public static Task<string> CreateAsync(EternityContext context, WorkflowOptions<TInput> options)
+        public static Task<string> CreateAsync(EternityContext context, WorkflowOptions<TInput> options, bool throwIfExists = true)
         {
             context.GetDerived(typeof(TWorkflow));
-            return context.CreateAsync(typeof(TWorkflow), options);
+            return context.CreateAsync(typeof(TWorkflow), options, throwIfExists);
         }
 
         /// <summary>

@@ -98,7 +98,7 @@ namespace NeuroSpeech.Eternity
             });
         }
 
-        internal async Task<string> CreateAsync<TInput>(Type type, WorkflowOptions<TInput> options)
+        internal async Task<string> CreateAsync<TInput>(Type type, WorkflowOptions<TInput> options, bool throwIfExists = true)
         {
             var id = options.ID ?? Guid.NewGuid().ToString("N");
             var now = clock.UtcNow;
@@ -111,7 +111,10 @@ namespace NeuroSpeech.Eternity
             var existing = await repository.GetAsync(id);
             if (existing != null)
             {
-                throw new ArgumentException($"Workflow already exists");
+                if (throwIfExists) {
+                    throw new ArgumentException($"Workflow already exists");
+                }
+                return id;
             }
             await repository.SaveAsync(entity);
             NewWorkflow?.Invoke(this, EventArgs.Empty);
