@@ -320,7 +320,7 @@ namespace NeuroSpeech.Eternity
         internal async Task Delay(IWorkflow workflow, string id, DateTimeOffset timeout)
         {
 
-            var key = CreateEntity(workflow, "Delay", true, Empty, timeout, workflow.CurrentUtc);
+            var key = CreateEntity(workflow, "Delay", false, Empty, timeout, workflow.CurrentUtc);
             var status = await repository.GetAsync(key.ID);
 
             switch (status?.State)
