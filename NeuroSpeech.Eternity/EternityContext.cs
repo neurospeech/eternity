@@ -558,11 +558,6 @@ namespace NeuroSpeech.Eternity
             }
         }
 
-        private string Serialize<T>(T model)
-        {
-            return JsonSerializer.Serialize<T>(model, this.options);
-        }
-
         private T Deserialize<T>(string? response)
         {
             if (string.IsNullOrEmpty(response))
@@ -687,7 +682,7 @@ namespace NeuroSpeech.Eternity
             await repository.SaveAsync(workflowEntity);
         }
 
-        internal string Serialize<TInput>(TInput? input)
+        internal string Serialize<TInput>(TInput input)
         {
             return JsonSerializer.Serialize(input, options);
         }
