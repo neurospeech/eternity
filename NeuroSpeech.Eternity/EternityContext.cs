@@ -686,5 +686,10 @@ namespace NeuroSpeech.Eternity
             workflowEntity.UtcUpdated = clock.UtcNow;
             await repository.SaveAsync(workflowEntity);
         }
+
+        internal string Serialize<TInput>(TInput? input)
+        {
+            return JsonSerializer.Serialize(input, options);
+        }
     }
 }

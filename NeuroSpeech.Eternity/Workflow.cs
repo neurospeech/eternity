@@ -64,6 +64,24 @@ namespace NeuroSpeech.Eternity
             });
         }
 
+        public static Task<string> CreateUniqueAsync(
+            EternityContext context,
+            TInput input,
+            string? id = null,
+            string? description = null)
+        {
+            // this will force verification..
+            context.GetDerived(typeof(TWorkflow));
+            id ??= $"{typeof(TWorkflow).FullName}-{context.Serialize(input)}";
+            return context.CreateAsync(typeof(TWorkflow), new WorkflowOptions<TInput>
+            {
+                Input = input,
+                ID = id,
+                Description = description
+            }, false);
+        }
+
+
         /// <summary>
         /// Executes current workflow within given parent, execution of
         /// parent workflow will be blocked till this workflow is completed
