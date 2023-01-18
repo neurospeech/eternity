@@ -54,13 +54,18 @@ namespace NeuroSpeech.Eternity
         /// <param name="context">Eternity Context</param>
         /// <param name="input">Input</param>
         /// <returns></returns>
-        public static Task<string> CreateAsync(EternityContext context, TInput input, string? description = null)
+        public static Task<string> CreateAsync(
+            EternityContext context,
+            TInput input,
+            string? description = null,
+            DateTimeOffset? eta = null)
         {
             // this will force verification..
             context.GetDerived(typeof(TWorkflow));
             return context.CreateAsync(typeof(TWorkflow), new WorkflowOptions<TInput> { 
                 Input = input,
-                Description = description
+                Description = description,
+                ETA = eta
             });
         }
 
@@ -68,7 +73,8 @@ namespace NeuroSpeech.Eternity
             EternityContext context,
             TInput input,
             string? id = null,
-            string? description = null)
+            string? description = null,
+            DateTimeOffset? eta = null)
         {
             // this will force verification..
             context.GetDerived(typeof(TWorkflow));
@@ -77,7 +83,8 @@ namespace NeuroSpeech.Eternity
             {
                 Input = input,
                 ID = id,
-                Description = description
+                Description = description,
+                ETA = eta
             }, false);
         }
 
