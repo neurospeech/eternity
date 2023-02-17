@@ -613,7 +613,9 @@ namespace NeuroSpeech.Eternity
 
             using var session = this.logger.BeginLogSession();
             session?.LogVerbose($"Workflow {workflow.ID} waiting for an external event");
-            var activity = CreateEntity(workflow, nameof(WaitForExternalEventsAsync), false, Empty, eta, workflow.CurrentUtc);
+            // this should fix the bug of sql server rounding off ticks...
+            var time = DateTimeOffset.FromUnixTimeMilliseconds(workflow.CurrentUtc.ToUnixTimeMilliseconds());
+            var activity = CreateEntity(workflow, nameof(WaitForExternalEventsAsync), false, Empty, eta, time);
             activity.Input = Serialize(names);
             activity.Priority = workflow.WaitCount++;
             var activityId = activity.ID;
