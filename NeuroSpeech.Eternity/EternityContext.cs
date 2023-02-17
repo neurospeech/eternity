@@ -275,10 +275,11 @@ namespace NeuroSpeech.Eternity
                 {
                     var input = JsonSerializer.Deserialize(entity.Input ?? "null", instance.InputType, options);
                     var result = await instance.RunAsync(input!);
+                    var now = clock.UtcNow;
                     entity.Response = JsonSerializer.Serialize(result, options);
-                    entity.UtcUpdated = clock.UtcNow;
+                    entity.UtcUpdated = now;
                     entity.State = EternityEntityState.Completed;
-                    entity.UtcETA = clock.UtcNow.Add(instance.PreserveTime);
+                    entity.UtcETA = now.Add(instance.PreserveTime);
                     entity.Priority = -1;
                     session?.LogInformation($"Workflow {entity.ID} completed.");
                 }
@@ -293,8 +294,9 @@ namespace NeuroSpeech.Eternity
                 {
                     entity.Response = ex.ToString();
                     entity.State = EternityEntityState.Failed;
-                    entity.UtcUpdated = clock.UtcNow;
-                    entity.UtcETA = clock.UtcNow.Add(instance.PreserveTime);
+                    var now = clock.UtcNow;
+                    entity.UtcUpdated = now;
+                    entity.UtcETA = now.Add(instance.PreserveTime);
                     entity.Priority = -1;
                     session?.LogError($"Workflow {entity.ID} failed. {ex.ToString()}");
                 }
@@ -399,7 +401,8 @@ namespace NeuroSpeech.Eternity
                 return;
             }
             logger?.Log(System.Diagnostics.TraceEventType.Information, $"Raising event {name} for {id}");
-            existing.UtcUpdated = clock.UtcNow;
+            var now = clock.UtcNow;
+            existing.UtcUpdated = now;
             existing.State = EternityEntityState.Completed;
             // existing.UtcETA = existing.UtcUpdated;
             existing.Response = Serialize(new EventResult { 
@@ -407,7 +410,7 @@ namespace NeuroSpeech.Eternity
                 Value = result
             });
             existing.Input = ""; // remove event names... 
-            workflow.UtcETA = existing.UtcUpdated;
+            workflow.UtcETA = now;
             await repository.SaveAsync(workflow, existing);
 
             Trigger(existing.ID);
@@ -612,7 +615,6 @@ namespace NeuroSpeech.Eternity
             var workflowEntity = workflow.Entity;
 
             using var session = this.logger.BeginLogSession();
-            session?.LogVerbose($"Workflow {workflow.ID} waiting for an external event");
             // this should fix the bug of sql server rounding off ticks...
             var time = DateTimeOffset.FromUnixTimeMilliseconds(workflow.CurrentUtc.ToUnixTimeMilliseconds());
             var activity = CreateEntity(workflow, nameof(WaitForExternalEventsAsync), false, Empty, eta, time);
@@ -620,6 +622,7 @@ namespace NeuroSpeech.Eternity
             activity.Priority = workflow.WaitCount++;
             var activityId = activity.ID;
             workflowEntity.UtcETA = eta;
+            session?.LogVerbose($"Workflow {activityId} waiting for an external event");
             var result = await repository.GetAsync(activityId);
             if (result == null)
             {                
@@ -670,10 +673,13 @@ namespace NeuroSpeech.Eternity
                     var timedout = new EventResult { };
                     activity.Response = Serialize(timedout);
                     activity.State = EternityEntityState.Completed;
-                    activity.UtcUpdated = clock.UtcNow;
-                    workflow.SetCurrentTime(activity.UtcUpdated);
-                    workflowEntity.UtcUpdated = activity.UtcUpdated;
-                    workflowEntity.UtcETA = activity.UtcUpdated;
+                    activity.Input = "";
+                    var now = clock.UtcNow;
+                    activity.UtcUpdated = now;
+                    workflow.SetCurrentTime(now);
+                    workflowEntity.UtcUpdated = now;
+                    workflowEntity.UtcETA = now;
+                    session?.LogVerbose($"Workflow {activityId} timed out.");
                     await repository.SaveAsync(activity, workflowEntity);
                     return (null, null);
                 }

@@ -95,6 +95,47 @@ namespace NeuroSpeech.Eternity.SqliteStorage.Tests
         }
 
         [TestMethod]
+        public async Task VerifySecondAttemptAsync()
+        {
+            using var engine = new MockSqlStrage((s) => {
+                s.AddSingleton<IEternityLogger, DiagnosticsLogger>();
+            });
+            var emailService = engine.EmailService;
+            var context = engine.Resolve<EternityContext>();
+
+            // send email..
+            var id = await SignupWorkflow.CreateAsync(context, "sample@gmail.com");
+
+            engine.Clock.UtcNow += TimeSpan.FromMinutes(1);
+
+            await context.ProcessMessagesOnceAsync();
+
+            // check if we received the email..
+            Assert.IsTrue(emailService.Emails.Any());
+
+            var code = emailService.Emails[0].code;
+
+            engine.Clock.UtcNow += TimeSpan.FromMinutes(15);
+            // fire event..
+            await context.ProcessMessagesOnceAsync();
+            await context.ProcessMessagesOnceAsync();
+
+            await context.RaiseEventAsync(id, SignupWorkflow.Verify, code);
+
+            engine.Clock.UtcNow += TimeSpan.FromMinutes(1);
+
+            await context.ProcessMessagesOnceAsync();
+
+            var status = await engine.Storage.GetAsync(id);
+
+            Assert.AreEqual(status.State, Storage.EternityEntityState.Completed);
+
+            Assert.AreEqual(status.Response, "\"Verified\"");
+
+            // Assert.AreEqual(0, engine.Storage.QueueSize);
+        }
+
+        [TestMethod]
         public async Task ResendAsync()
         {
             using var engine = new MockSqlStrage((s) => {
