@@ -11,7 +11,7 @@ namespace NeuroSpeech.Eternity
     {
         public static DateTimeOffset TrimNanoSeconds(this DateTimeOffset dateTime)
         {
-            return dateTime.AddTicks(-(dateTime.Ticks % TimeSpan.TicksPerSecond));
+            return dateTime.AddTicks(-(dateTime.Ticks % TimeSpan.TicksPerMillisecond));
         }
     }
 

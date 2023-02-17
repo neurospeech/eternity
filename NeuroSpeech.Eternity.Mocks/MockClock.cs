@@ -13,7 +13,7 @@ namespace NeuroSpeech.Eternity.Mocks
     {
         public static DateTimeOffset TrimNanoSeconds(this DateTimeOffset dateTime)
         {
-            return dateTime.AddTicks(-(dateTime.Ticks % TimeSpan.TicksPerSecond));
+            return dateTime.AddTicks(-(dateTime.Ticks % TimeSpan.TicksPerMillisecond));
         }
     }
 }

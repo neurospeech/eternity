@@ -124,7 +124,7 @@ namespace NeuroSpeech.Eternity
             await repository.SaveAsync(entity);
             NewWorkflow?.Invoke(this, EventArgs.Empty);
             logger?.Log(System.Diagnostics.TraceEventType.Information, $"New workflow created {id}");
-            var diff = eta - DateTimeOffset.UtcNow;
+            var diff = eta - now;
             SetMaxPollingGap(diff);
             return id;
         }
