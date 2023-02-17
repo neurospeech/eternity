@@ -44,7 +44,12 @@ namespace NeuroSpeech.Eternity
                 Trigger();
                 return;
             }
-            waiter.ClearAfter(ts);
+            //waiter.ClearAfter(ts);
+            Task.Run(async () =>
+            {
+                await Task.Delay(ts);
+                Trigger();
+            });
         }
 
         public EternityContext(
@@ -646,15 +651,13 @@ namespace NeuroSpeech.Eternity
                 if (diff.TotalMilliseconds >0)
                 {
                     await SaveWorkflow(workflowEntity, eta);
-                }
-                if (diff.TotalSeconds > 15)
-                {
-                    SetMaxPollingGap(diff);
-                    throw new ActivitySuspendedException();
-                }
+                
+                    if (diff.TotalSeconds > 15)
+                    {
+                        SetMaxPollingGap(diff);
+                        throw new ActivitySuspendedException();
+                    }
 
-                if (diff.TotalMilliseconds > 0)
-                {
                     await waitingTokens.Delay(activityId, diff, Cancellation);
                 }
 
