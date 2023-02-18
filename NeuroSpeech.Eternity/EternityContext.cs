@@ -616,7 +616,7 @@ namespace NeuroSpeech.Eternity
 
             using var session = this.logger.BeginLogSession();
             // this should fix the bug of sql server rounding off ticks...
-            var time = DateTimeOffset.FromUnixTimeMilliseconds(workflow.CurrentUtc.ToUnixTimeMilliseconds());
+            var time = workflow.CurrentUtc;
             var activity = CreateEntity(workflow, nameof(WaitForExternalEventsAsync), false, Empty, eta, time);
             activity.Input = Serialize(names);
             activity.Priority = workflow.WaitCount++;

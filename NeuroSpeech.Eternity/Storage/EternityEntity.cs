@@ -35,7 +35,7 @@ namespace NeuroSpeech.Eternity.Storage
             @this.UtcETA = eta.UtcDateTime;
             @this.UtcUpdated = @this.UtcCreated = now.UtcDateTime;
             @this.ParentID = id;
-            var dt = uniqueParameters ? "" : $"-{now.Ticks}";
+            var dt = uniqueParameters ? "" : $"-{now.ToSqlServerPrecision().Ticks}";
 
             var inputJson = new string[parameters.Length];
             var uk = new StringBuilder();
