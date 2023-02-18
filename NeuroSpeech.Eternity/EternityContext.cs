@@ -519,7 +519,7 @@ namespace NeuroSpeech.Eternity
                 key.State = EternityEntityState.Completed;
                 var now = clock.UtcNow;
                 key.UtcUpdated = now;
-                key.UtcCreated = now;
+                // key.UtcCreated = now;
                 key.UtcETA = now;
                 workflow.SetCurrentTime(now);
                 workflow.Entity.UtcUpdated = now;
@@ -534,7 +534,7 @@ namespace NeuroSpeech.Eternity
                 key.Response = ex.ToString();
                 key.State = EternityEntityState.Failed;
                 key.UtcUpdated = now;
-                key.UtcCreated = now;
+                // key.UtcCreated = now;
                 key.UtcETA = now;
                 workflow.SetCurrentTime(now);
                 workflow.Entity.UtcUpdated = now;
@@ -625,7 +625,8 @@ namespace NeuroSpeech.Eternity
             session?.LogVerbose($"Workflow {activityId} waiting for an external event");
             var result = await repository.GetAsync(activityId);
             if (result == null)
-            {                
+            {
+                session?.LogVerbose($"Workflow {activityId} created");
                 await repository.SaveAsync(activity, workflowEntity);
             }
 
@@ -643,12 +644,12 @@ namespace NeuroSpeech.Eternity
                         workflow.SetCurrentTime(result.UtcUpdated);
                         await SaveWorkflow(workflowEntity, eta);
                         var er = Deserialize<EventResult>(result.Response)!;
-                        session?.LogVerbose($"Workflow {workflow.ID} waiting for an external event finished {result.Response}");
+                        session?.LogVerbose($"Workflow {activityId} waiting for an external event finished {result.Response}");
                         return (er.EventName, er.Value);
                     case EternityEntityState.Failed:
                         workflow.SetCurrentTime(result.UtcUpdated);
                         await SaveWorkflow(workflowEntity, eta);
-                        session?.LogVerbose($"Workflow {workflow.ID} waiting for an external event failed {result.Response}");
+                        session?.LogVerbose($"Workflow {activityId} waiting for an external event failed {result.Response}");
                         throw new ActivityFailedException(result.Response!);
                 }
 
