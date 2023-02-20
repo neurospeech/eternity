@@ -90,6 +90,7 @@ namespace NeuroSpeech.Eternity
                         if (value is DateTimeOffset d)
                         {
                             p.Value = d.UtcDateTime;
+                            p.DbType = DbType.DateTime2;
                         }
                         else
                         {
