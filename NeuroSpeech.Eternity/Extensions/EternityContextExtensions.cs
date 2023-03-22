@@ -34,6 +34,8 @@ namespace NeuroSpeech.Eternity
                 foreach (var type in assembly.GetExportedTypes())
                 {
                     var s = type.GetCustomAttribute<ScheduleDailyAttribute>();
+                    if (s == null)
+                        continue;
                     r.Add((type, s.Groups));
                 }
             }

@@ -27,7 +27,8 @@ Long running workflows with ability to suspend and replay the workflow in future
 10. Support for non deterministic workflows, activities are isolated by parameters and time of execution, (you can also make Activity unique) so same activity method with same parameter anywhere in the workflow will execute only once and will give same result.
 11. Workflow can wait for multiple events, and when you raise an event, it will optionally throw an exception if workflow is not waiting.
 12. You can wait for events for days/months. It does not occupy any resources, waiting occurs in queue, and workers do not stay busy while waiting.
-13. .NET Standard 2.0 support, it means it can run anywhere without any native/local dependency.
+13. Added support for DailyWorkflows, Workflows that can be derived from class `DailyWorkflows` and execute once per day.
+14. .NET Standard 2.0 support, it means it can run anywhere without any native/local dependency.
 
 ## Why did we remove Azure Table Storage?
 
