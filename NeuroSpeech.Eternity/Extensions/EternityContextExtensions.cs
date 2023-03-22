@@ -32,6 +32,12 @@ namespace NeuroSpeech.Eternity
 
     public class DailyWorkflow : Workflow<DailyWorkflow, string, string>
     {
+        public DailyWorkflow()
+        {
+            this.PreserveTime = TimeSpan.FromHours(26);
+            this.FailurePreserveTime = TimeSpan.FromHours(1);
+        }
+
         public override Task<string> RunAsync(string input)
         {
             return Task.FromResult("None");
