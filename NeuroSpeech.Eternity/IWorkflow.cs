@@ -12,7 +12,7 @@ namespace NeuroSpeech.Eternity
 
         EternityEntity Entity { get; set; }
 
-        void Init(string id, EternityContext context, DateTimeOffset start, bool generated);
+        void Init(string id, EternityContext context, DateTimeOffset start, bool generated, Type originalType);
         void SetCurrentTime(DateTimeOffset time);
 
         Type InputType { get; }
@@ -21,8 +21,6 @@ namespace NeuroSpeech.Eternity
 
         Task<object> RunAsync(object input);
         
-        IList<string> QueueItemList { get; }
-
         bool  IsActivityRunning { get; set; }
 
         bool IsGenerated { get; }

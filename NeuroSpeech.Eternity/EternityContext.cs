@@ -230,10 +230,15 @@ namespace NeuroSpeech.Eternity
 
         private static TimeSpan MaxLock = TimeSpan.FromMinutes(1);
 
-        private IWorkflow GetWorkflowInstance(EternityEntity entity, Type type, string id, DateTimeOffset eta)
+        private IWorkflow GetWorkflowInstance(EternityEntity entity, Type originalType, Type type, string id, DateTimeOffset eta)
         {
             var w = (Activator.CreateInstance(type) as IWorkflow)!;
-            w.Init(id, this, eta, type.GetCustomAttribute<GeneratedWorkflowAttribute>() != null);
+            w.Init(
+                id,
+                this,
+                eta,
+                type.GetCustomAttribute<GeneratedWorkflowAttribute>() != null,
+                originalType);
             w.Entity = entity;
             return w;
         }
@@ -259,7 +264,7 @@ namespace NeuroSpeech.Eternity
                 var originalType = Type.GetType(entity.Name);
                 var workflowType = this.GetDerived(originalType);
                 // we need to begin...
-                var instance = GetWorkflowInstance(entity, workflowType, entity.ID, entity.UtcCreated);
+                var instance = GetWorkflowInstance(entity, originalType, workflowType, entity.ID, entity.UtcCreated);
 
                 if (entity.State == EternityEntityState.Completed
                     || entity.State == EternityEntityState.Failed)

@@ -213,9 +213,8 @@ namespace NeuroSpeech.Eternity
 
         bool IWorkflow.IsActivityRunning { get => IsActivityRunning; set => IsActivityRunning = value; }
 
-        IList<string> IWorkflow.QueueItemList { get; } = new List<string>();
-
         private EternityEntity _entity;
+        private Type originalType;
         EternityEntity IWorkflow.Entity { get => _entity; set => _entity = value; }
 
         /// <summary>
@@ -244,9 +243,10 @@ namespace NeuroSpeech.Eternity
 
         public abstract Task<TOutput> RunAsync(TInput input);
 
-        void IWorkflow.Init(string id, EternityContext context, DateTimeOffset start, bool generated)
+        void IWorkflow.Init(string id, EternityContext context, DateTimeOffset start, bool generated, Type originalType)
         {
             this.ID = id;
+            this.originalType = originalType;
             this.Context = context;
             this.CurrentUtc = start;
             this.generated = generated;
@@ -292,7 +292,7 @@ namespace NeuroSpeech.Eternity
         [EditorBrowsable(EditorBrowsableState.Never)]
         public Task<T> InternalScheduleResultAsync<T>(string method, params object?[] items)
         {
-            var fx = typeof(TWorkflow).GetVirtualMethod(method);
+            var fx = originalType.GetVirtualMethod(method);
             var unique = fx.GetCustomAttribute<ActivityAttribute>();
             return Context.ScheduleAsync<T>(this, unique.UniqueParameters, ID, CurrentUtc, fx, items);
         }
@@ -300,7 +300,7 @@ namespace NeuroSpeech.Eternity
         [EditorBrowsable(EditorBrowsableState.Never)]
         public async Task InternalScheduleAsync(string method, params object?[] items)
         {
-            var fx = typeof(TWorkflow).GetVirtualMethod(method);
+            var fx = originalType.GetVirtualMethod(method);
             var unique = fx.GetCustomAttribute<ActivityAttribute>();
             await Context.ScheduleAsync<object>(this, unique.UniqueParameters, ID, CurrentUtc, fx, items);
         }
@@ -312,7 +312,7 @@ namespace NeuroSpeech.Eternity
             {
                 throw new ArgumentException($"{nameof(at)} cannot be in the past");
             }
-            var fx = typeof(TWorkflow).GetVirtualMethod(method);
+            var fx = originalType.GetVirtualMethod(method);
             var unique = fx.GetCustomAttribute<ActivityAttribute>();
             return Context.ScheduleAsync<T>(this, unique.UniqueParameters, ID, at, fx, items);
         }
@@ -324,7 +324,7 @@ namespace NeuroSpeech.Eternity
             {
                 throw new ArgumentException($"{nameof(at)} cannot be in the past");
             }
-            var fx = typeof(TWorkflow).GetVirtualMethod(method);
+            var fx = originalType.GetVirtualMethod(method);
             var unique = fx.GetCustomAttribute<ActivityAttribute>();
             await Context.ScheduleAsync<object>(this, unique.UniqueParameters, ID, at, fx, items);
         }
@@ -336,7 +336,7 @@ namespace NeuroSpeech.Eternity
             {
                 throw new ArgumentException($"{nameof(at)} cannot be in the past");
             }
-            var fx = typeof(TWorkflow).GetVirtualMethod(method);
+            var fx = originalType.GetVirtualMethod(method);
             var unique = fx.GetCustomAttribute<ActivityAttribute>();
             return Context.ScheduleAsync<T>(this, unique.UniqueParameters, ID, CurrentUtc.Add(at), fx, items);
         }
@@ -348,7 +348,7 @@ namespace NeuroSpeech.Eternity
             {
                 throw new ArgumentException($"{nameof(at)} cannot be in the past");
             }
-            var fx = typeof(TWorkflow).GetVirtualMethod(method);
+            var fx = originalType.GetVirtualMethod(method);
             var unique = fx.GetCustomAttribute<ActivityAttribute>();
             await Context.ScheduleAsync<object>(this, unique.UniqueParameters, ID, CurrentUtc.Add(at), fx, items);
         }
