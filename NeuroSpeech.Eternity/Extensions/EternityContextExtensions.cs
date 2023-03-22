@@ -15,16 +15,26 @@ namespace NeuroSpeech.Eternity
     public class ScheduleDailyAttribute: Attribute
     {
 
-        public static List<Type> GetTypes(Assembly[] assemblies)
+        public string[] Groups { get; set; }
+
+        /// <summary>
+        /// If empty, group is "Default"
+        /// </summary>
+        /// <param name="groups"></param>
+        public ScheduleDailyAttribute(params string[] groups)
         {
-            var r = new List<Type>();
+            this.Groups = groups.Length > 0 ? groups : new string[] { "Default" };
+        }
+
+        public static List<(Type type,string[] group)> GetTypes(Assembly[] assemblies)
+        {
+            var r = new List<(Type,string[])>();
             foreach (var assembly in assemblies)
             {
                 foreach (var type in assembly.GetExportedTypes())
                 {
-                    if (type.GetCustomAttribute<ScheduleDailyAttribute>() == null)
-                        continue;
-                    r.Add(type);
+                    var s = type.GetCustomAttribute<ScheduleDailyAttribute>();
+                    r.Add((type, s.Groups));
                 }
             }
             return r;
@@ -46,35 +56,45 @@ namespace NeuroSpeech.Eternity
         }
     }
 
-    public interface IDailyWorkflowTypes
-    {
-        List<Type> Types { get; }
-    }
-
-
     public static class EternityContextExtensions
     {
 
-        private class DailyWorkflowTypes : IDailyWorkflowTypes
+        internal class DailyWorkflowTypes
         {
+            private readonly ConcurrentDictionary<string, List<Type>> types;
 
             public DailyWorkflowTypes()
             {
-                this.Types = new List<Type>();
+                this.types = new ConcurrentDictionary<string, List<Type>>();
             }
 
-            public List<Type> Types { get ; }
+            public List<Type> ForGroup(string group = "Default")
+            {
+                return types.GetOrAdd(group, (k) => new List<Type>());
+            }
+
+            public void AddRange(List<(Type, string[])> types)
+            {
+                foreach(var (type, groups) in types)
+                {
+                    foreach(var group in groups)
+                    {
+                        ForGroup(group).Add(type);
+                    }
+                }
+            }
         }
 
-        internal static List<Type> GetDailyWorkflowTypes(this IServiceCollection services)
+        internal static DailyWorkflowTypes GetDailyWorkflowTypes(
+            this IServiceCollection services)
         {
-            var s = services.FirstOrDefault(x => x.ServiceType == typeof(IDailyWorkflowTypes));
+            var s = services.FirstOrDefault(x => x.ServiceType == typeof(DailyWorkflowTypes));
             if (s == null)
             {
-                s = new ServiceDescriptor(typeof(IDailyWorkflowTypes), new DailyWorkflowTypes());
+                s = new ServiceDescriptor(typeof(DailyWorkflowTypes), new DailyWorkflowTypes());
                 services.Add(s);
             }
-            return (s.ImplementationInstance as DailyWorkflowTypes)!.Types;
+            return (s.ImplementationInstance as DailyWorkflowTypes)!;
         }
 
         public static void RegisterDailyWorkflows(
@@ -88,26 +108,29 @@ namespace NeuroSpeech.Eternity
 
         public static void RegisterDailyWorkflows(
             this IServiceCollection services,
-            params Type[] types
+            Type type,
+            string group = "Default"
             )
         {
-            services.GetDailyWorkflowTypes().AddRange(types);
+            services.GetDailyWorkflowTypes().ForGroup(group).Add(type);
         }
 
         public static void RegisterDailyWorkflow<T>(
-            this IServiceCollection services
+            this IServiceCollection services,
+            string group
             )
         {
-            services.GetDailyWorkflowTypes().Add(typeof(T));
+            services.GetDailyWorkflowTypes().ForGroup(group).Add(typeof(T));
         }
 
         public static void RunDailyWorkflows(
             this EternityContext context,
             CancellationToken cancellationToken,
+            string group = "Default",
             TimeSpan? offset = null)
         {
             Task.Run(async () => {
-                var types = context.services.GetRequiredService<IDailyWorkflowTypes>().Types;
+                var types = context.services.GetRequiredService<DailyWorkflowTypes>().ForGroup(group);
                 try
                 {
                     var delay = TimeSpan.FromHours(1);
