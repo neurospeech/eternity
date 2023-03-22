@@ -18,7 +18,7 @@ namespace NeuroSpeech.Eternity
         private readonly IServiceProvider services;
         private readonly IEternityClock clock;
         private readonly IEternityRepository repository;
-        private readonly IEternityLogger? logger;
+        internal readonly IEternityLogger? logger;
         private readonly IServiceScopeFactory? scopeFactory;
 
         public event EventHandler? NewWorkflow;
