@@ -16,7 +16,7 @@ namespace NeuroSpeech.Eternity
 
     public class EternityContext
     {
-        private readonly IServiceProvider services;
+        internal readonly IServiceProvider services;
         private readonly IEternityClock clock;
         private readonly IEternityRepository repository;
         internal readonly IEternityLogger? logger;
@@ -26,8 +26,6 @@ namespace NeuroSpeech.Eternity
 
         private WaitingTokens waitingTokens;
         private readonly JsonSerializerOptions options;
-
-        internal List<Type> dailyWorkflows = new List<Type>();
 
         private Waiter waiter = new Waiter();
 

@@ -1,7 +1,9 @@
-﻿using System;
+﻿using Microsoft.Extensions.DependencyInjection;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading;
@@ -44,39 +46,59 @@ namespace NeuroSpeech.Eternity
         }
     }
 
+    public interface IDailyWorkflowTypes
+    {
+        List<Type> Types { get; }
+    }
+
+
     public static class EternityContextExtensions
     {
 
-        /// <summary>
-        /// Registers the tasks that will be executed daily
-        /// </summary>
-        /// <param name="context"></param>
-        /// <param name="cancellationToken"></param>
-        /// <param name="assemblies"></param>
-        /// <param name="offset">TimeZone offset to adjust start of the day</param>
-        /// <returns></returns>
-        public static void RegisterDailyWorkflow(
-            this EternityContext context,
+        private class DailyWorkflowTypes : IDailyWorkflowTypes
+        {
+
+            public DailyWorkflowTypes()
+            {
+                this.Types = new List<Type>();
+            }
+
+            public List<Type> Types { get ; }
+        }
+
+        internal static List<Type> GetDailyWorkflowTypes(this IServiceCollection services)
+        {
+            var s = services.FirstOrDefault(x => x.ServiceType == typeof(IDailyWorkflowTypes));
+            if (s == null)
+            {
+                s = new ServiceDescriptor(typeof(IDailyWorkflowTypes), new DailyWorkflowTypes());
+                services.Add(s);
+            }
+            return (s.ImplementationInstance as DailyWorkflowTypes)!.Types;
+        }
+
+        public static void RegisterDailyWorkflows(
+            this IServiceCollection services,
             params Assembly[] assemblies
             )
         {
             var types = ScheduleDailyAttribute.GetTypes(assemblies);
-            context.dailyWorkflows.AddRange(types);
+            services.GetDailyWorkflowTypes().AddRange(types);
         }
 
-        public static void RegisterDailyWorkflow(
-            this EternityContext context,
+        public static void RegisterDailyWorkflows(
+            this IServiceCollection services,
             params Type[] types
             )
         {
-            context.dailyWorkflows.AddRange(types);
+            services.GetDailyWorkflowTypes().AddRange(types);
         }
 
         public static void RegisterDailyWorkflow<T>(
-            this EternityContext context
+            this IServiceCollection services
             )
         {
-            context.dailyWorkflows.Add(typeof(T));
+            services.GetDailyWorkflowTypes().Add(typeof(T));
         }
 
         public static void RunDailyWorkflows(
@@ -85,6 +107,7 @@ namespace NeuroSpeech.Eternity
             TimeSpan? offset = null)
         {
             Task.Run(async () => {
+                var types = context.services.GetRequiredService<IDailyWorkflowTypes>().Types;
                 try
                 {
                     var delay = TimeSpan.FromHours(1);
@@ -96,7 +119,7 @@ namespace NeuroSpeech.Eternity
                             now = now.Add(offset.Value);
                         }
                         now = now.Date;
-                        foreach (var type in context.dailyWorkflows)
+                        foreach (var type in types)
                         {
                             var uniqueKey = $"{type.FullName}-{now:O}";
                             await Generic.InvokeAs(type, ScheduleDaily<DailyWorkflow>, context, uniqueKey);
