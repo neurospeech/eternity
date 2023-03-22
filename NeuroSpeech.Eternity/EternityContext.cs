@@ -2,6 +2,7 @@
 using NeuroSpeech.Eternity.Storage;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Reflection;
@@ -25,6 +26,8 @@ namespace NeuroSpeech.Eternity
 
         private WaitingTokens waitingTokens;
         private readonly JsonSerializerOptions options;
+
+        internal List<Type> dailyWorkflows = new List<Type>();
 
         private Waiter waiter = new Waiter();
 

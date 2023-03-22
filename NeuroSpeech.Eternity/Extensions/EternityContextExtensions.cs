@@ -55,38 +55,59 @@ namespace NeuroSpeech.Eternity
         /// <param name="assemblies"></param>
         /// <param name="offset">TimeZone offset to adjust start of the day</param>
         /// <returns></returns>
-        public static async Task RegisterDailyTasks(
+        public static void RegisterDailyWorkflow(
             this EternityContext context,
-            Assembly[] assemblies,
-            CancellationToken cancellationToken,
-            TimeSpan? offset
+            params Assembly[] assemblies
             )
         {
-            try
-            {
-                var types = ScheduleDailyAttribute.GetTypes(assemblies);
-                // in case if the task gets cancelled or errors out
-                // we should recreate every hour..                
-                var day = TimeSpan.FromHours(1);
-                while (!cancellationToken.IsCancellationRequested)
-                {
-                    var now = DateTime.UtcNow;
-                    if(offset != null)
-                    {
-                        now = now.Add(offset.Value);
-                    }
-                    now = now.Date;
-                    foreach (var type in types)
-                    {
-                        var uniqueKey = $"{type.FullName}-{now.Ticks}";
-                        await Generic.InvokeAs(type, ScheduleDaily<DailyWorkflow>, context, uniqueKey);
-                    }
-                    await Task.Delay(day, cancellationToken);
-                }
-            } catch (TaskCanceledException)
-            {
+            var types = ScheduleDailyAttribute.GetTypes(assemblies);
+            context.dailyWorkflows.AddRange(types);
+        }
 
-            }
+        public static void RegisterDailyWorkflow(
+            this EternityContext context,
+            params Type[] types
+            )
+        {
+            context.dailyWorkflows.AddRange(types);
+        }
+
+        public static void RegisterDailyWorkflow<T>(
+            this EternityContext context
+            )
+        {
+            context.dailyWorkflows.Add(typeof(T));
+        }
+
+        public static void RunDailyWorkflows(
+            this EternityContext context,
+            CancellationToken cancellationToken,
+            TimeSpan? offset = null)
+        {
+            Task.Run(async () => {
+                try
+                {
+                    var delay = TimeSpan.FromHours(1);
+                    while (!cancellationToken.IsCancellationRequested)
+                    {
+                        var now = DateTime.UtcNow;
+                        if (offset != null)
+                        {
+                            now = now.Add(offset.Value);
+                        }
+                        now = now.Date;
+                        foreach (var type in context.dailyWorkflows)
+                        {
+                            var uniqueKey = $"{type.FullName}-{now:O}";
+                            await Generic.InvokeAs(type, ScheduleDaily<DailyWorkflow>, context, uniqueKey);
+                        }
+                        await Task.Delay(delay, cancellationToken);
+                    }
+                }catch (TaskCanceledException)
+                {
+
+                }
+            });
         }
 
         [EditorBrowsable(EditorBrowsableState.Never)]
