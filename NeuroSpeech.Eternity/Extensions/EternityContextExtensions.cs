@@ -137,13 +137,14 @@ namespace NeuroSpeech.Eternity
         public static async Task ScheduleDaily<T>(
             this EternityContext context,
             string uniqueKey)
-            where T: Workflow<T, string,string >
+            where T: DailyWorkflow
         {
             try
             {
-                await Workflow<T, string, string>.CreateUniqueAsync(context,
-                    input: uniqueKey,
-                    id: uniqueKey);
+                await context.CreateAsync(typeof(T), new WorkflowOptions<string> {
+                    ID = uniqueKey,
+                    Input = uniqueKey
+                }, throwIfExists: false );
             }catch (Exception ex)
             {
                 context.logger?.LogError(ex.ToString());
