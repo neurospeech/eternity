@@ -115,16 +115,16 @@ namespace NeuroSpeech.Eternity.SqlStorage
                             {entity.ID}, {idHash}, {entity.Name},{entity.Input},{entity.IsWorkflow},
                             {entity.UtcETA.UtcDateTime}, {entity.UtcCreated.UtcDateTime}, { entity.UtcUpdated.UtcDateTime},
                             {entity.Response}, { entity.State}, {entity.ParentID}, {paretIDHash},
-                            {entity.Priority})
+                            {entity.Priority}, {entity.Extra})
                         ) AS S1(ID, IDHash, Name, Input, IsWorkflow, UtcETA, UtcCreated, UtcUpdated,
-                            Response, State, ParentID, ParentIDHash, Priority)
+                            Response, State, ParentID, ParentIDHash, Priority, Extra)
                     ) as S
                 ON Target.ID = S.ID AND Target.IDHash = S.IDHash
                 WHEN NOT MATCHED BY Target THEN
                     INSERT (ID, IDHash, Name, Input, IsWorkflow, UtcETA, UtcCreated, UtcUpdated,
-                    Response, State, ParentID, ParentIDHash, Priority)
+                    Response, State, ParentID, ParentIDHash, Priority, Extra)
                     VALUES (S.ID, S.IDHash, S.Name, S.Input, S.IsWorkflow, S.UtcETA, S.UtcCreated, S.UtcUpdated,
-                    S.Response, S.State, S.ParentID, S.ParentIDHash, S.Priority)
+                    S.Response, S.State, S.ParentID, S.ParentIDHash, S.Priority, S.Extra)
                 WHEN MATCHED THEN UPDATE SET
                     Target.ID = S.ID,
                     Target.IDHash = S.IDHash,
@@ -139,7 +139,8 @@ namespace NeuroSpeech.Eternity.SqlStorage
                     Target.State = S.State,
                     Target.ParentID = S.ParentID,
                     Target.ParentIDHash = S.ParentIDHash,
-                    Target.Priority = S.Priority;
+                    Target.Priority = S.Priority,
+                    Target.Extra = S.Extra;
 ");
                 parts.Add(q);
             }
