@@ -52,7 +52,7 @@ namespace NeuroSpeech.Eternity
         ON [{schemaName}].[{tableName}] (ParentIDHash, Priority DESC) INCLUDE (ParentID) WHERE ParentIDHash IS NOT NULL;
 
         CREATE INDEX [IX_{schemaName}_{tableName}_UtcETA]
-        ON [{schemaName}].[{tableName}] (UtcETA, Priority DESC) WHERE IsWorkflow = 1;
+        ON [{schemaName}].[{tableName}] (UtcETA, Priority DESC) INCLUDE(QueueTTL) WHERE IsWorkflow = 1;
 
     END
 ");
