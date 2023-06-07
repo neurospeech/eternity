@@ -200,6 +200,25 @@ namespace NeuroSpeech.Eternity.SqlStorage
         {
             using var db = await Open();
             var idHash = GetHash(entity.ID);
+
+            // delete 100s of items for 15 seconds and yield...
+            var start = DateTime.UtcNow;
+            while (true)
+            {
+                int step = await db.ExecuteNonQueryAsync(TemplateQuery.New(@$"DELETE TOP (100) FROM [{schemaName}].[{tableName}] WHERE 
+                (ParentID={entity.ID} AND ParentIDHash={idHash})"));
+                if (step == 0)
+                {
+                    break;
+                }
+                var diff = DateTime.UtcNow - start;
+                if(diff.TotalSeconds > 15)
+                {
+                    return;
+                }
+            }
+
+
             await db.ExecuteNonQueryAsync(TemplateQuery.New(@$"DELETE FROM [{schemaName}].[{tableName}] WHERE 
                 (ID={entity.ID} AND IDHash={idHash}) 
                 OR (ParentID={entity.ID} AND ParentIDHash={idHash})"));
