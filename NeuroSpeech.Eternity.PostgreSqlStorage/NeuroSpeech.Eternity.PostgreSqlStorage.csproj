@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+	  <PackageId>NeuroSpeech.Eternity.PostgreSqlStorage</PackageId>
+	  <RootNamespace>NeuroSpeech.Eternity</RootNamespace>
+	  <Authors>Akash Kava</Authors>
+	  <Company>NeuroSpeech Technologies Pvt Ltd</Company>
+	  <Version>1.0.1</Version>
+	  <LangVersion>latest</LangVersion>
+	  <Nullable>enable</Nullable>
+	  <Description>Sqlite Storage for Eternity Project, Long running workflows with ability to suspend and replay the workflow in future.</Description>
+	  <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
+	  <PublishRepositoryUrl>true</PublishRepositoryUrl>
+	  <IncludeSymbols>true</IncludeSymbols>
+	  <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+	  <EmbedAllSources>True</EmbedAllSources>
+	  <DebugType>embedded</DebugType>
+  </PropertyGroup>
+
+  <ItemGroup>
+	 <PackageReference Include="Npgsql" Version="7.0.4" />
+    <ProjectReference Include="..\NeuroSpeech.Eternity.DbStorage\NeuroSpeech.Eternity.DbStorage.csproj" />
+    <ProjectReference Include="..\NeuroSpeech.Eternity\NeuroSpeech.Eternity.csproj" />
+  </ItemGroup>
+
+</Project>
