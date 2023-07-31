@@ -22,6 +22,10 @@
 	 <PackageReference Include="Npgsql" Version="7.0.4" />
     <ProjectReference Include="..\NeuroSpeech.Eternity.DbStorage\NeuroSpeech.Eternity.DbStorage.csproj" />
     <ProjectReference Include="..\NeuroSpeech.Eternity\NeuroSpeech.Eternity.csproj" />
+	<PackageReference Include="Nerdbank.GitVersioning" Version="3.4.216">
+		<PrivateAssets>all</PrivateAssets>
+		<IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+	</PackageReference>
   </ItemGroup>
 
 </Project>
