@@ -56,7 +56,7 @@ namespace NeuroSpeech.Eternity.SqlStorage
             var now = utcNow.UtcDateTime;
             var futureLock = now.AddMinutes(1);
             var query = TemplateQuery.New(@$"
-                SELECT TOP ({max}) *
+                SELECT TOP ({max}) nID
                 FROM [{schemaName}].[{tableName}]
                 WHERE 
                     UtcETA < {now}
@@ -64,24 +64,20 @@ namespace NeuroSpeech.Eternity.SqlStorage
                     AND (QueueTTL IS NULL OR QueueTTL<{now})
                 ORDER BY Priority DESC");
             var list = await db.FromSqlAsync<SqlEternityEntity>(query, ignoreUnmatchedProperties: true);
-            var rlist = new List<EternityEntity>();
-            var ids = new List<long>();
-            foreach(var item in list)
-            {
-                rlist.Add(item);
-                ids.Add(item.NID);
-            }
+            var ids = list.Select((x) => x.NID);
             if (ids.Any())
             {
-                await db.ExecuteNonQueryAsync(TemplateQuery.New(@$"
+                var result = await db.FromSqlAsync<SqlEternityEntity>(TemplateQuery.New(@$"
                 UPDATE [{schemaName}].[{tableName}]
                 SET
                     QueueTTL={futureLock}
+                OUTPUT INSERTED.*
                 WHERE
                     nID IN ({ids})
-            "));
+                "), ignoreUnmatchedProperties: true);
+                return result.OfType<EternityEntity>().OrderBy(x => x.UtcETA).ToList();
             }
-            return rlist;
+            return new List<EternityEntity>();
         }
 
         public async Task<EternityEntity?> GetAsync(string? id)
