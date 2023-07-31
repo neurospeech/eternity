@@ -13,7 +13,6 @@ Long running workflows with ability to suspend and replay the workflow in future
 | NeuroSpeech.Eternity.SqlStorage                 | [![NuGet](https://img.shields.io/nuget/v/NeuroSpeech.Eternity.SqlStorage.svg?label=NuGet)](https://www.nuget.org/packages/NeuroSpeech.Eternity.SqlStorage) |
 | NeuroSpeech.Eternity.Mocks                         | [![NuGet](https://img.shields.io/nuget/v/NeuroSpeech.Eternity.Mocks.svg?label=NuGet)](https://www.nuget.org/packages/NeuroSpeech.Eternity.Mocks)               |
 
-
 ## Features
 1. Strongly typed API
 2. Mobile Ready - Storage is abstract and does support running workflows in Mobile Devices.
