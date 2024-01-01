@@ -261,11 +261,6 @@ namespace NeuroSpeech.Eternity
             using var session = this.logger.BeginLogSession();
             try
             {
-                var originalType = Type.GetType(entity.Name);
-                var workflowType = this.GetDerived(originalType);
-                // we need to begin...
-                var instance = GetWorkflowInstance(entity, originalType, workflowType, entity.ID, entity.UtcCreated);
-
                 if (entity.State == EternityEntityState.Completed
                     || entity.State == EternityEntityState.Failed)
                 {
@@ -277,8 +272,13 @@ namespace NeuroSpeech.Eternity
                     return;
                 }
 
+                IWorkflow? instance = null;
+
                 try
                 {
+                    var originalType = Type.GetType(entity.Name);
+                    var workflowType = this.GetDerived(originalType);
+                    instance = GetWorkflowInstance(entity, originalType, workflowType, entity.ID, entity.UtcCreated);
                     var input = JsonSerializer.Deserialize(entity.Input ?? "null", instance.InputType, options);
                     var result = await instance.RunAsync(input!);
                     var now = clock.UtcNow;
@@ -302,9 +302,9 @@ namespace NeuroSpeech.Eternity
                     entity.State = EternityEntityState.Failed;
                     var now = clock.UtcNow;
                     entity.UtcUpdated = now;
-                    entity.UtcETA = now.Add(instance.PreserveTime);
+                    entity.UtcETA = now.Add(instance?.FailurePreserveTime ?? TimeSpan.FromHours(24));
                     entity.Priority = -1;
-                    session?.LogError($"Workflow {entity.ID} failed. {ex.ToString()}");
+                    session?.LogError($"Workflow {entity.ID} failed. {ex}");
                 }
                 if (entity.ParentID != null)
                 {
